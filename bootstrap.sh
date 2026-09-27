@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Shonan_Lite-androidPhoneをまだクローンしていないマシン向けのブートストラップ。
+# Shonan_Lite-androidPhone-SSBFMをまだクローンしていないマシン向けのブートストラップ。
 # リポジトリをclone(または既存なら更新)し、install.shへ処理を引き継ぐ。
 #
 # このリポジトリはPrivateなので、匿名のcurl | bashではraw取得できない。
@@ -8,14 +8,14 @@
 # 状態から取得するには、例えば以下のように `gh api` 経由で1ファイルだけ
 # 先に取得してから実行する:
 #
-#   gh api repos/kazushinjo/Shonan_Lite-androidPhone/contents/bootstrap.sh \
+#   gh api repos/kazushinjo/Shonan_Lite-androidPhone-SSBFM/contents/bootstrap.sh \
 #     --jq '.content' | base64 -d > bootstrap.sh
 #   chmod +x bootstrap.sh
 #   ./bootstrap.sh
 set -euo pipefail
 
-REPO_URL="https://github.com/kazushinjo/Shonan_Lite-androidPhone.git"
-TARGET_DIR="${1:-$HOME/Shonan_Lite-androidPhone}"
+REPO_URL="https://github.com/kazushinjo/Shonan_Lite-androidPhone-SSBFM.git"
+TARGET_DIR="${1:-$HOME/Shonan_Lite-androidPhone-SSBFM}"
 
 if ! command -v git >/dev/null 2>&1; then
   echo "エラー: gitが見つかりません。'brew install git' 等でインストールしてください。" >&2

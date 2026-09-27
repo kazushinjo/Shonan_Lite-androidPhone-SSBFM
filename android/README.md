@@ -1,8 +1,8 @@
 # Shonan Android
 
-`ios/`にあるShonan(Swift/SwiftUI + Obj-C++、Pluto直結DVB-S2トランシーバー)のKotlin/Jetpack Compose移植。パッケージ名`com.shinjo.shonanandroid`。
+`ios/`にあるShonan(Swift/SwiftUI + Obj-C++、Pluto直結DVB-S2トランシーバー)のKotlin/Jetpack Compose移植に、SSB/FM送受信(Langstone-V2の移植)とRSSI測定を加えたもの。Kotlinのパッケージ名は`com.shinjo.shonanandroid`、アプリID(applicationId)は`com.shinjo.shonanandroid.ssbfm`。
 
-Kotlin/Jetpack Compose port of Shonan (Swift/SwiftUI + Obj-C++, a DVB-S2 transceiver directly connected to a Pluto) found in `ios/`. Package name `com.shinjo.shonanandroid`.
+Kotlin/Jetpack Compose port of Shonan (Swift/SwiftUI + Obj-C++, a DVB-S2 transceiver directly connected to a Pluto) found in `ios/`, with SSB/FM transmit/receive (a port of Langstone-V2) and RSSI measurement added. The Kotlin package name is `com.shinjo.shonanandroid` and the app ID (applicationId) is `com.shinjo.shonanandroid.ssbfm`.
 
 ## 参照元
 
@@ -24,7 +24,7 @@ Kotlin/Jetpack Compose port of Shonan (Swift/SwiftUI + Obj-C++, a DVB-S2 transce
 
 ### 本番Rx
 
-`AppSettings.useOnDeviceGRDVBS2Rx`(設定画面の「オンデバイス復調(GNU Radio)」トグル)で以下の2方式を切り替える。
+`AppSettings.useOnDeviceGRDVBS2Rx`(設定１タブの「オンデバイス復調(GNU Radio)」スイッチ)で以下の2方式を切り替える。
 どちらの経路もTS出力は共通の`TsPacketAligner`(後述)を通してから`TsDemuxerNative`/`H264DisplaySurface`へ渡す。
 
 - **外部復調機器方式(既定)**: `UdpReceiver`が外部復調機器からのMPEG-TSをUDPで直接受信する
@@ -47,9 +47,34 @@ Kotlin/Jetpack Compose port of Shonan (Swift/SwiftUI + Obj-C++, a DVB-S2 transce
 - `app/src/main/cpp/dvbs2_bridge.cpp` + `dvbs2_tx_lib.cpp`/`dvbs2_rx_lib.cpp`: 上記のJNIブリッジ。KotlinからCライブラリを直接呼べないiOS(Swift bridging header)との違いを吸収するため、FIFO管理・libiio操作・送受信ループをすべてC++側に集約し、Kotlinには薄いstart/stop/write/診断値取得のみを公開
 - `dvbs2/`: `Dvbs2TxPipeline`/`Dvbs2RxPipeline`(JNIラッパー)、`Dvbs2TestRunner`(TX→RXの順次自己診断、iOS版`DVBS2TestRunner.runDiag`相当)、`Dvbs2Native`(assetsの`conf/`展開・作業ディレクトリ管理)
 
+### SSB/FM送受信(Langstone-V2の移植)
+
+- `app/src/main/cpp/ssbfm_dsp.h`: 受信(528ksps→周波数変換+1/11間引き→48kHz、USB/FM復調、AGC、スケルチ、スペクトル用FFT)と
+  送信(USB: 複素帯域フィルタで片側波帯を生成 / FM: プリエンファシス+周波数変調、11倍補間)のDSP。JNI・libiioに依存しないため
+  `app/src/main/cpp/test/ssbfm_dsp_test.cpp`から単体で検証できる
+- `app/src/main/cpp/ssbfm_bridge.cpp`: Pluto制御(libiio v1を直接使用。GNU Radioの実行エンジンは使わない)、528ksps用FIRの読み込み
+  (libAD9361-iioの`ad9361_set_bb_rate()`と同じ手順)、受信LOの配置(100kHz単位、希望周波数を+50〜+150kHz側で受ける)、
+  開始前のPluto設定の保存と停止時の復元、AAudioによるスピーカー出力とマイク入力、JNI
+- `ssbfm/`: `SsbFmController`(状態・直列化したネイティブ呼び出し・スペクトル/ウォーターフォール)、`SsbFmSettings`(周波数・モード・
+  バンドごとの記憶・PA/PTTコントローラ)、`Esp32PttClient`(ESP32+W5500へ`GET /tx?state=on|off`)
+- `net/PlutoUdpTsController.stop()`: SSB/FM開始時にSSHでPluto側の`pluto_dvb`を止め、TX DMAを空ける(DATV送信の開始時は従来どおり`restart()`で再起動)
+- DATVの送受信・RSSI測定とは同じPlutoを使うため排他にしている(`AppViewModel.startSsbFm()`/`startTX()`/`startRX()`/`startRssi()`)
+
+### RSSI測定
+
+- `dvbs2/RssiNativeSession.kt` + `dvbs2_bridge.cpp`の`RssiSession`: IQストリーミングを行わず、AD9361の受信LOと`voltage0/rssi`属性だけを
+  操作する(タイムアウト2秒、RXゲインは`setRxGain()`で設定)
+- `AppViewModel.startRssi()`: 開始〜終了周波数をステップごとに走査し、1周の変動幅が3dB以上なら最小値(最も強い)の周波数を確定する。
+  オンデバイス復調ON時はテストパターンで自動送信して自局の電波を測る(タブレット版・Shonan_Lite-winと同じ仕様)
+
 ### UI
 
-`ui/`にHome/Tx/Rx/Frequency/SymbolRate/FEC/Modulation/VideoSource/StreamOutput/RxGain/TxPower/Settings/Help画面を実装済み。電話版はHome画面上部のタブでこれらを切り替える単一画面構成で、タブレット版にあるRSSI測定(旧称: 相手局検索/AFC)・機器試験の画面は搭載していない(RSSI測定用のJNIセッション`RssiNativeSession`と機器試験の`Dvbs2TestRunner`はコードとして残っているがUIからは使わない)。設定は`SettingsStore`でSharedPreferencesへ永続化。
+`ui/`の画面はHome画面上部のタブで切り替える単一画面構成: SSB/FM(`SsbFmScreen`)、(空白の区切り)、送信(`TxScreen`)、受信(`RxScreen`)、
+RSSI測定(`RssiScreen`)、周波数(`FrequencySettingsScreen`)、設定１(`SettingsScreen`: 表示言語・オンデバイス復調・PA/PTTコントローラ)、
+設定２(`GainPowerSettingsScreen`: 受信感度・送信出力)、設定３(`ModCodSettingsScreen`: シンボルレート・誤り訂正・変調方式)、
+設定４(`SourceOutputSettingsScreen`: 映像ソース・配信先)、ヘルプ(`HelpScreen`)。タブレット版にある機器試験の画面は搭載していない
+(機器試験の`Dvbs2TestRunner`はコードとして残っているがUIからは使わない)。DATVの設定は`SettingsStore`、SSB/FMの設定は
+`SsbFmSettingsStore`でSharedPreferencesへ永続化。
 
 ## 実機で踏んだ主な不具合と対策
 
@@ -85,7 +110,7 @@ fully independent.
 
 ### Production Rx
 
-`AppSettings.useOnDeviceGRDVBS2Rx` (the "On-device demodulation (GNU Radio)" toggle on the Settings screen) switches
+`AppSettings.useOnDeviceGRDVBS2Rx` (the "On-device demodulation (GNU Radio)" switch on the Config 1 tab) switches
 between the two modes below. Either path's TS output goes through the shared `TsPacketAligner` (described below)
 before reaching `TsDemuxerNative`/`H264DisplaySurface`.
 
@@ -106,9 +131,40 @@ The received TS is continuously validated against 188-byte TS packet boundaries 
 - `app/src/main/cpp/dvbs2_bridge.cpp` + `dvbs2_tx_lib.cpp`/`dvbs2_rx_lib.cpp`: JNI bridge for the above. To absorb the difference from iOS (where Kotlin, unlike Swift with a bridging header, cannot call a C library directly), all FIFO management, libiio operations, and the Tx/Rx loop are consolidated on the C++ side, exposing only a thin start/stop/write/diagnostics API to Kotlin
 - `dvbs2/`: `Dvbs2TxPipeline`/`Dvbs2RxPipeline` (JNI wrappers), `Dvbs2TestRunner` (sequential Tx→Rx self-diagnostic, equivalent to the iOS version's `DVBS2TestRunner.runDiag`), `Dvbs2Native` (extracts `conf/` from assets, manages the working directory)
 
+### SSB/FM Transmit/Receive (port of Langstone-V2)
+
+- `app/src/main/cpp/ssbfm_dsp.h`: DSP for receive (528 ksps → frequency shift + 1/11 decimation → 48 kHz, USB/FM demodulation,
+  AGC, squelch, FFT for the spectrum) and transmit (USB: single sideband from a complex band-pass filter / FM: pre-emphasis +
+  frequency modulation, 11× interpolation). It does not depend on JNI or libiio, so `app/src/main/cpp/test/ssbfm_dsp_test.cpp`
+  can test it on its own
+- `app/src/main/cpp/ssbfm_bridge.cpp`: Pluto control (libiio v1 called directly; the GNU Radio scheduler is not used), loading the
+  FIR needed for 528 ksps (same procedure as libAD9361-iio's `ad9361_set_bb_rate()`), RX LO placement (on a 100 kHz grid, with the
+  wanted frequency received 50–150 kHz above it), saving Pluto's settings before start and restoring them on stop, speaker output
+  and mic input via AAudio, and JNI
+- `ssbfm/`: `SsbFmController` (state, serialized native calls, spectrum/waterfall), `SsbFmSettings` (frequency, mode, per-band
+  memory, PA/PTT controller), `Esp32PttClient` (`GET /tx?state=on|off` to the ESP32+W5500)
+- `net/PlutoUdpTsController.stop()`: stops Pluto's `pluto_dvb` over SSH when SSB/FM starts, freeing the TX DMA (DATV transmit
+  still restarts it with `restart()` as before)
+- DATV TX/RX and RSSI measurement use the same Pluto, so they are mutually exclusive with SSB/FM
+  (`AppViewModel.startSsbFm()`/`startTX()`/`startRX()`/`startRssi()`)
+
+### RSSI Measurement
+
+- `dvbs2/RssiNativeSession.kt` + `RssiSession` in `dvbs2_bridge.cpp`: no IQ streaming; only the AD9361 RX LO and the
+  `voltage0/rssi` attribute are used (2-second timeout; the RX gain is set with `setRxGain()`)
+- `AppViewModel.startRssi()`: sweeps from the start to the end frequency in steps, and if a sweep varies by 3 dB or more,
+  takes the frequency with the minimum value (the strongest) as the result. When on-device demodulation is on, it transmits the
+  test pattern automatically and measures its own signal (same behavior as the tablet version and Shonan_Lite-win)
+
 ### UI
 
-`ui/` implements the Home/Tx/Rx/Frequency/SymbolRate/FEC/Modulation/VideoSource/StreamOutput/RxGain/TxPower/Settings/Help screens. The phone version is a single screen that switches between them with tabs at the top of Home; it does not include the tablet version's RSSI Measurement (formerly Find Station/AFC) or Diagnostic screens (the RSSI JNI session `RssiNativeSession` and the diagnostic `Dvbs2TestRunner` remain in the code but are not used from the UI). Settings are persisted to SharedPreferences via `SettingsStore`.
+The `ui/` screens form a single screen switched with tabs at the top of Home: SSB/FM (`SsbFmScreen`), (a blank spacer),
+Transmit (`TxScreen`), Receive (`RxScreen`), RSSI (`RssiScreen`), Frequency (`FrequencySettingsScreen`), Config 1
+(`SettingsScreen`: display language, on-device demodulation, PA/PTT controller), Config 2 (`GainPowerSettingsScreen`: receive
+gain and transmit power), Config 3 (`ModCodSettingsScreen`: symbol rate, FEC, modulation), Config 4
+(`SourceOutputSettingsScreen`: video source and stream output), and Help (`HelpScreen`). The tablet version's Diagnostic screen is
+not included (the diagnostic `Dvbs2TestRunner` remains in the code but is not used from the UI). DATV settings are persisted to
+SharedPreferences via `SettingsStore`, and SSB/FM settings via `SsbFmSettingsStore`.
 
 ## Major Issues Hit on Real Hardware, and Their Fixes
 
