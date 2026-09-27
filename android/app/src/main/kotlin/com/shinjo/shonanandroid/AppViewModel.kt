@@ -280,7 +280,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     var rssiRestrictionMessage by mutableStateOf<String?>(null)
         private set
     private var rssiJob: Job? = null
-    /** オンデバイス復調ON時に検索開始と同時に送信を開始した場合true(検索停止時に送信も止める)。 */
+    /** オンデバイス復調ON時に測定開始と同時に送信を開始した場合true(測定停止時に送信も止める)。 */
     private var rssiTxStartedByScan = false
     /** RXゲインが変更された時刻(ms)。走査ループが250ms後にまとめてPlutoへ反映する。0=変更なし。 */
     @Volatile private var rssiGainChangedAtMs = 0L
@@ -292,10 +292,10 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
      * - AD9361の`voltage0/rssi`は値が小さいほど信号が強い指標なので、最小値の周波数を
      *   「最も強い周波数」とする。1周の変動幅が[RSSI_PEAK_THRESHOLD_DB]未満なら前回の結果を保持する。
      * - 検索方法「連続」は[AppSettings.rssiRepeatScan]がtrueの間、1周ごとに結果を確定して繰り返す。
-     *   「1回」は範囲の終わりで自動停止する。「検索停止」は即座に止め、その時点までの結果を確定する。
-     * - オンデバイス復調ON時は自局のRXを掃引するだけでは何も受からないため、検索開始と同時に
+     *   「1回」は範囲の終わりで自動停止する。「測定停止」は即座に止め、その時点までの結果を確定する。
+     * - オンデバイス復調ON時は自局のRXを掃引するだけでは何も受からないため、測定開始と同時に
      *   送信も開始し(送信中なら設定を揃えるため一旦止めて開始し直す)、3秒待ってから測定を始める。
-     *   検索停止時は、検索が開始した送信を止める。
+     *   測定停止時は、測定が開始した送信を止める。
      * - RXゲイン(AGC/手動)はRXゲイン画面と同じ設定値を使い、検索中の変更は250ms後にPlutoへ反映して
      *   その周回を最初からやり直す(異なるゲインの測定値が1周に混ざらないようにする)。
      */
@@ -424,7 +424,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
             } finally {
                 // ★後片付けは全体をNonCancellableで包む。withContext(Dispatchers.IO + NonCancellable)だけだと、
                 // IO側の処理が終わって呼び出し元(キャンセル済み)へ戻る時点でwithContextがCancellationExceptionを
-                // 投げ(prompt cancellation guarantee)、以降のrssiIsScanning=false等が実行されず「検索停止」が
+                // 投げ(prompt cancellation guarantee)、以降のrssiIsScanning=false等が実行されず「測定停止」が
                 // 効かないまま「検索中」表示が残る不具合を実機で確認した。
                 withContext(NonCancellable) {
                     // キャンセル後もPlutoを元の中心周波数へ戻してクローズする。

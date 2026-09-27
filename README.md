@@ -87,10 +87,10 @@ Pluto再起動、日本語/英語表示に対応します。
 - **受信**: 「受信開始」で受信を始め、ロックすると映像を全画面表示にします(上部のタブも隠れます)。画面をタップすると5秒間だけ
   状態カードとボタンを表示します。ロックが1.5秒以上外れると全画面表示を解除します。
 - **RSSI測定**: 「周波数」タブの運用周波数を中心に±5/10/20MHzをステップ(kHz)ごとに走査し、RSSIのグラフと「最も強い周波数」を
-  表示します(RSSIは値が小さいほど強い信号)。検索方法は「連続」(「検索停止」まで繰り返す)と「1回」、RXゲインは「設定２」と共通です。
-  「設定１」のオンデバイス復調がONのときはテスト用で、検索開始と同時に自局もテストパターンで送信して自分の電波を測ります
+  表示します(RSSIは値が小さいほど強い信号)。検索方法は「連続」(「測定停止」まで繰り返す)と「1回」、RXゲインは「設定２」と共通です。
+  「設定１」のオンデバイス復調がONのときはテスト用で、「測定開始」と同時に自局もテストパターンで送信して自分の電波を測ります
   (アッテネータを必ず接続すること)。OFFのときは送信せず、相手局の電波を測ります(相手局が送信していなければグラフが平らなのは正常)。
-  受信中は使えません。SSB/FMは検索開始時に自動で止めます。タブを離れると検索は止まります。
+  受信中は使えません。SSB/FMは測定開始時に自動で止めます。タブを離れると検索は止まります。
 - **周波数**: 左のバンド一覧から選ぶか、右のテンキーで周波数(kHz)を直接入力します。DATVの送信と受信で共通です
   (SSB/FMの周波数はSSB/FMタブで別に設定します)。
 - **設定１**: 表示言語(ホーム画面を除く)、オンデバイス復調(ONにするとPluto1台でRFループバック試験ができる。有効化時に
@@ -178,11 +178,11 @@ bridge), reboots Pluto at startup, and supports Japanese and English.
 - **Receive**: Start begins receiving; once locked, the video goes fullscreen (the tabs at the top are hidden too). Tap the
   screen to show the status card and buttons for 5 seconds. Fullscreen ends if the lock is lost for 1.5 seconds or more.
 - **RSSI**: Sweeps ±5/10/20 MHz around the operating frequency (Frequency tab) in kHz steps and shows an RSSI graph and the
-  strongest frequency (a smaller RSSI value means a stronger signal). Search modes are Repeat (until Stop) and Once; the RX
+  strongest frequency (a smaller RSSI value means a stronger signal). Search modes are Repeat (until Stop Measuring) and Once; the RX
   gain is shared with Config 2. When on-device demodulation (Config 1) is on, this is a test mode: the app also transmits the
   test pattern and measures its own signal (always connect an attenuator). When it is off, the app does not transmit and
   measures the other station (a flat graph is normal if nobody is transmitting). It cannot run while receiving; SSB/FM is
-  stopped automatically when a search starts. Leaving the tab stops the search.
+  stopped automatically when measuring starts. Leaving the tab stops the search.
 - **Frequency**: Choose a band from the list on the left, or type the frequency in kHz on the keypad on the right. DATV
   transmit and receive share it (the SSB/FM frequency is set separately on the SSB/FM tab).
 - **Config 1**: Display language (except the Home screen), on-device demodulation (enables an RF loopback test with a single

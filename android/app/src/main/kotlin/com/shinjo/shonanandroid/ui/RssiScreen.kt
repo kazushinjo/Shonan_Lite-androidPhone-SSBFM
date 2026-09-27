@@ -63,6 +63,8 @@ private val InnerCardBackground = Color(0xFF191D1F)
 private val TitleCyan = Color(0xFF54BCE0)
 private val TextColor = Color(0xFFEEEEEE)
 private val ActionButton = Color(0xFF0C91B5)
+/** 測定中の「測定停止」ボタンの色(SSB/FMの送信中と同じ赤)。 */
+private val MeasuringRed = Color(0xFFE53935)
 private val ChipBackground = Color(0xFF303538)
 private val SelectedText = Color(0xFF101416)
 private val DisabledText = Color(0xFF6B7880)
@@ -80,7 +82,7 @@ private const val DEFAULT_RANGE_MHZ = 10
 /**
  * RSSI測定タブ(タブレット版Shonan_Lite-androidのRSSI測定画面を電話版のタブへ移したもの) --
  * Shonan_Lite-win(`app/gui/screens/rssi.py`)と同じ構成:
- * 左に検索条件(中心周波数・±5/10/20MHzプリセット・ステップ・検索開始/停止)、
+ * 左に検索条件(中心周波数・±5/10/20MHzプリセット・ステップ・測定開始/停止)、
  * 右に検索結果(RSSIグラフ・最も強い周波数・検索方法(連続/1回)・RXゲイン)、下に状態表示。
  * Win版のテンキーは、Android版では端末の数字キーボードで代用する。
  */
@@ -103,7 +105,7 @@ fun RssiScreen(viewModel: AppViewModel) {
 
     // 画面を開くたびに、周波数画面で設定した運用周波数を中心とした±10MHzを取り込む(Win版と同じ)。
     LaunchedEffect(Unit) { applyRange(DEFAULT_RANGE_MHZ) }
-    // 検索は「検索停止」まで繰り返すため、他の画面へ移ったら止める(Win版のon_hideと同じ)。
+    // 検索は「測定停止」まで繰り返すため、他の画面へ移ったら止める(Win版のon_hideと同じ)。
     DisposableEffect(Unit) { onDispose { viewModel.stopRssi() } }
 
     // 電話の横向き画面に収めるため、上部バーは置かずタブの中身として表示する。
@@ -180,12 +182,14 @@ fun RssiScreen(viewModel: AppViewModel) {
                                 }
                             }
                         },
-                        colors = ButtonDefaults.buttonColors(containerColor = ActionButton),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = if (viewModel.rssiIsScanning) MeasuringRed else ActionButton,
+                        ),
                         shape = RoundedCornerShape(6.dp),
                         modifier = Modifier.fillMaxWidth().height(40.dp),
                     ) {
                         Text(
-                            if (viewModel.rssiIsScanning) settings.t("検索停止", "Stop Search") else settings.t("検索開始", "Start Search"),
+                            if (viewModel.rssiIsScanning) settings.t("測定停止", "Stop Measuring") else settings.t("測定開始", "Start Measuring"),
                             fontSize = 15.sp, fontWeight = FontWeight.Bold,
                         )
                     }
@@ -221,7 +225,7 @@ fun RssiScreen(viewModel: AppViewModel) {
                         color = TextColor, fontSize = 13.sp, fontWeight = FontWeight.Bold,
                     )
 
-                    // 検索方法(連続=「検索停止」まで繰り返す / 1回=範囲の終わりで自動停止)とRXゲインを1行に置く。
+                    // 検索方法(連続=「測定停止」まで繰り返す / 1回=範囲の終わりで自動停止)とRXゲインを1行に置く。
                     // 検索方法を検索中に切り替えた場合は、実行中の周回が終わった時点から反映される。
                     // RXゲインは設定２タブと同じ設定値を共有し、検索中でも変更できる。
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -339,7 +343,7 @@ private fun RssiGraph(
     points: List<RssiMeasurement>,
     modifier: Modifier = Modifier,
 ) {
-    val emptyText = settings.t("検索開始でRSSIを表示します", "Press Start to show RSSI")
+    val emptyText = settings.t("測定開始でRSSIを表示します", "Press Start Measuring to show RSSI")
     Canvas(
         modifier = modifier
             .background(ChartBackground, RoundedCornerShape(8.dp))

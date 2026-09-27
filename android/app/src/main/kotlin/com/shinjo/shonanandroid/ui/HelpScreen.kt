@@ -167,18 +167,18 @@ private val helpSections = listOf(
         "RSSI測定", "RSSI Measurement",
         "「周波数」タブの運用周波数を中心に、±5/10/20MHzの範囲をステップ(kHz)ごとに走査してPlutoのRSSIを測り、"
             + "グラフと「最も強い周波数」を表示します(RSSIは値が小さいほど強い信号です)。検索方法は「連続」"
-            + "(「検索停止」まで繰り返す)と「1回」から選べ、RXゲイン(AGC/手動)は「設定２」と共通です。"
-            + "「設定１」タブのオンデバイス復調がONのときはテスト用で、検索開始と同時に自局もテストパターンで"
+            + "(「測定停止」まで繰り返す)と「1回」から選べ、RXゲイン(AGC/手動)は「設定２」と共通です。"
+            + "「設定１」タブのオンデバイス復調がONのときはテスト用で、「測定開始」と同時に自局もテストパターンで"
             + "送信し、自分の電波のRSSIを測ります(アッテネータを必ず接続すること)。OFFのときは送信せず、"
             + "相手局の電波のRSSIを測ります(相手局が送信していなければグラフが平らなのは正常です)。"
-            + "受信中は使えません。SSB/FMは検索開始時に自動で止めます。タブを離れると検索は止まります。",
+            + "受信中は使えません。SSB/FMは測定開始時に自動で止めます。タブを離れると検索は止まります。",
         "Sweeps ±5/10/20 MHz around the operating frequency (Frequency tab) in kHz steps, measures Pluto's RSSI, "
             + "and shows a graph and the strongest frequency (a smaller RSSI value means a stronger signal). Choose "
-            + "Repeat (until Stop) or Once; the RX gain (AGC/manual) is shared with the Config 2 tab. When on-device "
+            + "Repeat (until Stop Measuring) or Once; the RX gain (AGC/manual) is shared with the Config 2 tab. When on-device "
             + "demodulation (Config 1 tab) is on, this is a test mode: the app also transmits the test pattern and "
             + "measures its own signal (always connect an attenuator). When it is off, the app does not transmit and "
             + "measures the other station (a flat graph is normal if nobody is transmitting). It cannot run while "
-            + "receiving; SSB/FM is stopped automatically when a search starts. Leaving the tab stops the search.",
+            + "receiving; SSB/FM is stopped automatically when measuring starts. Leaving the tab stops the search.",
     ),
     HelpSection(
         "周波数", "Frequency",
