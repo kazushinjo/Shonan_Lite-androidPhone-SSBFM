@@ -14,6 +14,7 @@ import androidx.compose.material3.Checkbox
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Switch
@@ -108,6 +109,29 @@ fun SettingsScreen(viewModel: AppViewModel, onNavigate: (String) -> Unit) {
                 ),
                 style = MaterialTheme.typography.bodySmall,
             )
+            Text(settings.t("PA/PTTコントローラ(ESP32+W5500)", "PA/PTT Controller (ESP32+W5500)"), style = MaterialTheme.typography.titleMedium)
+            OutlinedTextField(
+                value = viewModel.ssbFm.settings.pttControllerHost,
+                onValueChange = { viewModel.ssbFm.setPttControllerHost(it) },
+                label = { Text(settings.t("IPアドレス", "IP address")) },
+                placeholder = { Text(settings.t("未使用の場合は空欄", "Leave empty if not used")) },
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth(),
+            )
+            Text(
+                settings.t(
+                    "W5500_PA_PTT_ControlのESP32+W5500ボードのIPアドレス。SSB/FMタブのPTTに連動して送信開始/終了を"
+                        + "通知します(GET /tx?state=on|off)。送信開始はESP32へ通知して150ms待ってからRFを出し、"
+                        + "送信終了はRFを止めてから通知します。アドレスを入れているのにESP32が応答しない場合は送信しません。"
+                        + "空欄なら連携しません。",
+                    "IP address of the ESP32+W5500 board (W5500_PA_PTT_Control). The SSB/FM tab's PTT notifies it of "
+                        + "TX start/stop (GET /tx?state=on|off): on start it notifies, waits 150 ms, then sends RF; on stop "
+                        + "it stops RF first, then notifies. If an address is set but the ESP32 does not respond, the app "
+                        + "does not transmit. Leave empty to disable.",
+                ),
+                style = MaterialTheme.typography.bodySmall,
+            )
+
             if (settings.useOnDeviceGRDVBS2Rx) {
                 Text(
                     settings.t(

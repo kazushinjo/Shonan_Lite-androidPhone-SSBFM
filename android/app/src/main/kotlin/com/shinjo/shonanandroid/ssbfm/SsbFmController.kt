@@ -132,6 +132,13 @@ class SsbFmController(
                 if (ok) {
                     isRunning = true
                     startPolling()
+                    val host = s.pttControllerHost.trim()
+                    if (host.isNotEmpty() && !withContext(Dispatchers.IO) { Esp32PttClient.isReachable(host) }) {
+                        error = tr(
+                            "PA/PTTコントローラ(ESP32 $host)に接続できません。このままではPTTを押しても送信しません",
+                            "Cannot reach the PA/PTT controller (ESP32 $host). PTT will not transmit until it responds.",
+                        )
+                    }
                 }
             } finally {
                 status = null
@@ -149,7 +156,13 @@ class SsbFmController(
         val n = native ?: return
         if (!isRunning) return
         pollJob?.cancel()
-        withContext(nativeDispatcher) { n.stop() }
+        val wasTransmitting = isTransmitting
+        val host = settings.pttControllerHost.trim()
+        val message = withContext(nativeDispatcher) {
+            n.stop()
+            if (wasTransmitting && host.isNotEmpty()) pttOffSequence(n, host) else null
+        }
+        if (message != null) error = message
         isRunning = false
         isTransmitting = false
         signalDb = -200f
@@ -161,14 +174,56 @@ class SsbFmController(
         datvStoppedHost = null
     }
 
+    /**
+     * PTT。PA/PTTコントローラ(ESP32)が設定されていれば、送信開始は
+     * 「ESP32へ通知→リレー切替を待つ→PlutoのRF開始」、終了は「RF停止→ESP32へ通知」の順にする
+     * (LNAに送信電力を入れない・リレー接点を通電中に切り替えないため)。ESP32が設定されているのに
+     * 応答しない場合は、LNAが保護されないまま送信することになるので送信しない。
+     * 押す・離すが続いても順序が崩れないよう、一連の処理はネイティブ呼び出しと同じ直列ディスパッチャーで行う。
+     */
     fun setPtt(on: Boolean) {
         val n = native ?: return
         if (!isRunning || on == isTransmitting) return
         isTransmitting = on
+        val host = settings.pttControllerHost.trim()
         scope.launch {
-            val ok = withContext(nativeDispatcher) { n.setPtt(on) }
-            if (!ok && on) isTransmitting = false
+            val message = withContext(nativeDispatcher) {
+                if (on) pttOnSequence(n, host) else pttOffSequence(n, host)
+            }
+            // ""はネイティブ側が既にエラーを通知済みの失敗
+            if (!message.isNullOrEmpty()) error = message
+            if (on && message != null) isTransmitting = false
         }
+    }
+
+    // 戻り値はエラーメッセージ(成功ならnull)。
+    private fun pttOnSequence(n: SsbFmNative, host: String): String? {
+        if (host.isNotEmpty()) {
+            val notified = Esp32PttClient.notifyTx(host, on = true)
+            FileLogger.log("SSBFM", "ESP32 tx=on host=$host result=$notified")
+            if (notified.isFailure) {
+                return tr(
+                    "PA/PTTコントローラ(ESP32 $host)が応答しないため送信しません",
+                    "Not transmitting: the PA/PTT controller (ESP32 $host) did not respond",
+                )
+            }
+            Thread.sleep(PTT_LEAD_MS)
+        }
+        if (n.setPtt(true)) return null
+        // RFを出せなかったらESP32側も受信状態へ戻す(エラー表示はネイティブ側から届く)
+        if (host.isNotEmpty()) Esp32PttClient.notifyTx(host, on = false)
+        return ""
+    }
+
+    private fun pttOffSequence(n: SsbFmNative, host: String): String? {
+        n.setPtt(false)
+        if (host.isEmpty()) return null
+        val notified = Esp32PttClient.notifyTx(host, on = false, attempts = 3)
+        FileLogger.log("SSBFM", "ESP32 tx=off host=$host result=$notified")
+        return if (notified.isSuccess) null else tr(
+            "PA/PTTコントローラ(ESP32 $host)へ送信終了を通知できませんでした。PTT・PAの状態を確認してください",
+            "Could not tell the PA/PTT controller (ESP32 $host) that TX ended. Check the PTT/PA state.",
+        )
     }
 
     fun setFrequency(hz: Long) {
@@ -234,6 +289,8 @@ class SsbFmController(
 
     fun setPttLatch(latch: Boolean) = update { it.copy(pttLatch = latch) }
 
+    fun setPttControllerHost(host: String) = update { it.copy(pttControllerHost = host.trim()) }
+
     private fun update(change: (SsbFmSettings) -> SsbFmSettings) {
         settings = change(settings)
         SsbFmSettingsStore.save(context, settings)
@@ -294,6 +351,9 @@ class SsbFmController(
 
     companion object {
         const val WATERFALL_ROWS = 160
+        /** ESP32へ送信開始を通知してからRFを出すまでの待ち時間。ESP32側のPTT遅延(既定50ms)や
+         *  LNA→PTT切替(Pi4版100ms)が終わるのを待つ。 */
+        const val PTT_LEAD_MS = 150L
         const val WATERFALL_RANGE_DB = 45f
 
         private fun waterfallColor(v: Float): Int {

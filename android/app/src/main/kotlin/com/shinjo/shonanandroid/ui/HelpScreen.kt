@@ -84,6 +84,23 @@ private val rxSteps = listOf(
 // ★タブの並び順(ホーム画面のタブ順)に沿った各画面の説明。
 private val helpSections = listOf(
     HelpSection(
+        "SSB/FM", "SSB/FM",
+        "Plutoを使ってUSB・FMで送受信します(DATVの送受信とは同時に使えません)。「開始」で受信を始め、"
+            + "PTTを押している間だけ送信します(「PTTを押すたびに送受信を切り替える」も選べます)。"
+            + "周波数表示の桁をタップすると同調ステップ、長押しで直接入力、右の1.2G・2.4G・5.6Gでバンドを"
+            + "切り替えます(バンドごとに最後の周波数とモードを覚えます)。スペクトル/ウォーターフォールを"
+            + "左右にドラッグすると同調、タップするとその周波数へ移動します。スケルチはFMのみ有効です。"
+            + "「設定」タブでPA/PTTコントローラ(ESP32+W5500)のIPアドレスを入れておくと、PTTに連動して"
+            + "送信開始/終了を通知します(応答がない場合は送信しません)。",
+        "Transmit and receive USB and FM with Pluto (not at the same time as DATV). Tap Start to begin "
+            + "receiving; the radio transmits while PTT is held (or toggles with latching PTT). Tap a digit "
+            + "of the frequency to choose the tuning step, long-press to type a frequency, and use the "
+            + "1.2G/2.4G/5.6G buttons to change band (each band remembers its last frequency and mode). "
+            + "Drag the spectrum/waterfall to tune, or tap it to jump to that frequency. Squelch works in FM "
+            + "only. If the PA/PTT controller (ESP32+W5500) IP address is set on the Settings tab, PTT "
+            + "notifies it of TX start/stop (the app does not transmit if it does not respond).",
+    ),
+    HelpSection(
         "送信", "Transmit",
         "「映像ソース」タブで選んだ映像のプレビューを表示します。「送信開始」を押すと、現在の"
             + "周波数・シンボルレート・変調方式・誤り訂正・出力減衰量の設定でPlutoから送信します"
@@ -182,6 +199,20 @@ private val helpSections = listOf(
         "\"App Restart\" at the top sends a reboot request to Pluto and waits for its Web UI/iiod "
             + "to come back online (the same happens when the app starts). Try this if communication "
             + "seems stuck. \"Quit\" closes the app after a confirmation; stop TX/RX first if they are running.",
+    ),
+    HelpSection(
+        "クレジット", "Credits",
+        "SSB/FM送受信機能は、Colin Durbridge氏(G4EML)のLangstone-V2(https://github.com/g4eml/Langstone-V2、"
+            + "GPLv3)のAdalm Pluto版の信号処理とPluto制御を元にC++へ移植したものです。Plutoを528kspsで"
+            + "動かすためのFIR係数と設定手順は、Analog DevicesのlibAD9361-iio(LGPL-2.1)に由来します。"
+            + "Langstone-V2はGNU General Public License v3(GPLv3)で公開されているソフトウェアのため、"
+            + "それを使用した本アプリもGPLv3に従って配布します。",
+        "The SSB/FM transceiver is a C++ port of the signal processing and Pluto control of the "
+            + "Adalm Pluto version of Langstone-V2 by Colin Durbridge, G4EML "
+            + "(https://github.com/g4eml/Langstone-V2, GPLv3). The FIR coefficients and procedure used to "
+            + "run Pluto at 528 ksps come from Analog Devices' libAD9361-iio (LGPL-2.1). Because "
+            + "Langstone-V2 is licensed under the GNU General Public License v3 (GPLv3), this app, which "
+            + "uses it, is also distributed under GPLv3.",
     ),
 )
 

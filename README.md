@@ -26,16 +26,25 @@ the Pluto version of [Langstone-V2](https://github.com/g4eml/Langstone-V2) by G4
   AD9361のFIRなしの下限を下回るため、libad9361-iio(Analog Devices、LGPL-2.1)の`ad9361_set_bb_rate()`と
   同じ手順でFIRを読み込む。停止時はサンプルレート・LO・利得を開始前の値へ戻す。DATVの送受信とは排他
   (どちらかを始めると他方は止まる)。DATV送信の開始時には従来どおり`udpts.sh`が再起動される。
+- **PA/PTTコントローラ連携**: 「設定」タブでESP32+W5500(W5500_PA_PTT_Control)のIPアドレスを入れておくと
+  (既定192.168.0.100、空欄で無効)、PTTに連動して`GET /tx?state=on|off`を送る。送信開始はESP32へ通知→150ms待つ→
+  PlutoのRF開始、送信終了はRF停止→ESP32へ通知の順。アドレスがあるのにESP32が応答しない場合は送信しない。
 - **実装**: `android/app/src/main/cpp/ssbfm_dsp.h`(DSP)、`ssbfm_bridge.cpp`(Pluto制御・AAudio・JNI)、
   `android/app/src/main/kotlin/.../ssbfm/`、`ui/SsbFmScreen.kt`。
   `android/app/src/main/cpp/test/ssbfm_dsp_test.cpp`は送信DSP→疑似RF→受信DSPの折り返し検証
   (実機で側波帯抑圧・SINAD・処理時間を確認する。ビルド方法はファイル先頭)。
 - **アプリID**: `com.shinjo.shonanandroid.ssbfm`(アプリ名「Shonan SSB/FM」)。元の電話版と同じ端末に共存できる。
 
-## ライセンス
+## クレジットとライセンス(SSB/FM機能)
 
-SSB/FM機能はGPLv3のLangstone-V2に由来するため、このリポジトリは[GPLv3](LICENSE)で配布する。
-FIR係数と設定手順はlibad9361-iio(LGPL-2.1)に由来する。
+SSB/FM送受信タブは、Colin Durbridge氏(G4EML)の**Langstone-V2**(https://github.com/g4eml/Langstone-V2)を
+使用して作成した。Langstone-V2は**GNU General Public License v3(GPLv3)**で公開されているソフトウェアであり、
+それを使用した本アプリ(このリポジトリ全体)も**GPLv3**に従って配布する(全文は[LICENSE](LICENSE))。
+PlutoのFIR係数と設定手順はAnalog DevicesのlibAD9361-iio(LGPL-2.1)に由来する。
+詳細は末尾の「クレジット」「ライセンス」を参照。
+
+The SSB/FM tab was built using **Langstone-V2** by Colin Durbridge, G4EML, which is licensed under the
+**GNU GPL v3**; accordingly this app (the whole repository) is distributed under **GPLv3** (see [LICENSE](LICENSE)).
 
 ---
 
@@ -228,6 +237,11 @@ It accepts the same options as `install.sh` (`--build-only`, `--clean`, `--relea
 - 受信部の方式考案・受信部原システム設計: 山崎慎慈氏(JE1BTA) — `rpi-dvbs2-receiver-gui`の設計に基づく
 - 受信部安定化調査修正・再捕捉修正・本アプリ開発: 真城和一(JA6FUF/JH1XHX)
 - 本アプリは、Dave Crump氏(G8GKQ)が開発したDATV送受信機プロジェクト「Portsdown」に啓発され、開発したものです。同氏の先駆的な取り組みに感謝いたします。
+- SSB/FM送受信機能: Colin Durbridge氏(G4EML)の「Langstone-V2」(https://github.com/g4eml/Langstone-V2、GPLv3)の
+  Adalm Pluto版の信号処理(`Lang_TRX_Pluto.py`)とPluto制御(`LangstoneGUI_Pluto.c`)をC++へ移植して使用しています。
+  Langstone-V2がGPLv3のソフトウェアであるため、それを使用した本アプリもGPLv3で配布します。
+- PlutoのFIR係数(fir_128_4)と`ad9361_set_bb_rate()`の設定手順: Analog Devices「libAD9361-iio」
+  (https://github.com/analogdevicesinc/libad9361-iio、LGPL-2.1)
 
 ## ライセンス
 
@@ -237,6 +251,7 @@ It accepts the same options as `install.sh` (`--build-only`, `--clean`, `--relea
 ```
 Copyright (C) 2026  Kazuichi Shinjo
 Copyright of `rpi-dvbs2-receiver-gui` is held by Shinji Yamazaki.
+The SSB/FM transceiver is derived from Langstone-V2, Copyright (C) Colin Durbridge (G4EML), GPLv3.
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -284,6 +299,11 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 - Reception method design and original receiver system design: Shinji Yamazaki (JE1BTA) — based on the design of `rpi-dvbs2-receiver-gui`
 - Receiver stabilization investigation/fixes, re-acquisition fixes, and app development: Kazuichi Shinjo (JA6FUF/JH1XHX)
 - This application was developed inspired by "Portsdown", the DATV transceiver project created by Dave Crump (G8GKQ). We extend our deep gratitude for his pioneering work.
+- SSB/FM transceiver: a C++ port of the Adalm Pluto signal processing (`Lang_TRX_Pluto.py`) and Pluto control
+  (`LangstoneGUI_Pluto.c`) of "Langstone-V2" by Colin Durbridge (G4EML) (https://github.com/g4eml/Langstone-V2, GPLv3).
+  Because Langstone-V2 is GPLv3 software, this app, which uses it, is also distributed under GPLv3.
+- Pluto FIR coefficients (fir_128_4) and the `ad9361_set_bb_rate()` procedure: Analog Devices "libAD9361-iio"
+  (https://github.com/analogdevicesinc/libad9361-iio, LGPL-2.1)
 
 ## License
 
