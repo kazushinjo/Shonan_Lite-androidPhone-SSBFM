@@ -46,11 +46,15 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
-private data class HomeTab(val titleJA: String, val titleEN: String, val route: String)
+private data class HomeTab(val titleJA: String, val titleEN: String, val route: String) {
+    /** 見た目の区切りのためだけに1タブ分の空白を置く、押せないダミータブ。 */
+    val isSpacer: Boolean get() = route.isEmpty()
+}
 
 /** タブ形式のホーム画面に表示する機能一覧(RSSI測定/機器試験はAndroid電話版では非搭載)。 */
 private val homeTabs = listOf(
     HomeTab("SSB/FM", "SSB/FM", "ssbfm"),
+    HomeTab("", "", ""), // SSB/FMとDATV側のタブの間を1タブ分あける
     HomeTab("送信", "Transmit", "tx"),
     HomeTab("受信", "Receive", "rx"),
     HomeTab("周波数", "Frequency", "frequency"),
@@ -181,6 +185,10 @@ fun HomeScreen(viewModel: AppViewModel) {
                 ) {
                     homeTabs.forEachIndexed { index, tab ->
                         val isSelected = index == selectedIndex
+                        if (tab.isSpacer) {
+                            Tab(selected = false, onClick = {}, enabled = false, text = {})
+                            return@forEachIndexed
+                        }
                         Tab(
                             selected = isSelected,
                             onClick = { selectedRoute = tab.route },
