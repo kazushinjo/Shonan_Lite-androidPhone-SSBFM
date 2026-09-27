@@ -1,9 +1,11 @@
 package com.shinjo.shonanandroid.ui
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -13,10 +15,12 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.shinjo.shonanandroid.AppViewModel
+import com.shinjo.shonanandroid.R
 
 private val SectionTitle = Color(0xFF0D6E8C)
 private val StepAccent = Color(0xFF1677FF)
@@ -25,6 +29,22 @@ private val DividerColor = Color(0xFFCCCCCC)
 
 private data class HelpSection(val titleJA: String, val titleEN: String, val bodyJA: String, val bodyEN: String)
 private data class HelpStep(val ja: String, val en: String)
+
+/** 各タブの説明に添える実機の画面(docs/images/と同じ画像。日本語表示で撮影)。キーは節の日本語見出し。 */
+private val sectionImages = mapOf(
+    "SSB/FM" to listOf(R.drawable.help_ssbfm),
+    "送信" to listOf(R.drawable.help_tx),
+    "受信" to listOf(R.drawable.help_rx),
+    "RSSI測定" to listOf(R.drawable.help_rssi),
+    "周波数" to listOf(R.drawable.help_frequency),
+    "設定１" to listOf(R.drawable.help_config1_top, R.drawable.help_config1_bottom),
+    "設定２" to listOf(R.drawable.help_config2),
+    "設定３" to listOf(R.drawable.help_config3),
+    "設定４(映像ソース)" to listOf(R.drawable.help_config4),
+)
+
+/** 画面画像の縦横比(撮影画像1086x492)。 */
+private const val HELP_IMAGE_ASPECT = 1086f / 492f
 
 // ★SSB/FMで送受信するときの操作順序。
 private val ssbFmSteps = listOf(
@@ -170,14 +190,17 @@ private val helpSections = listOf(
             + "「設定１」タブのオンデバイス復調がONのときはテスト用で、「測定開始」と同時に自局もテストパターンで"
             + "送信し、自分の電波のRSSIを測ります(アッテネータを必ず接続すること)。OFFのときは送信せず、"
             + "相手局の電波のRSSIを測ります(相手局が送信していなければグラフが平らなのは正常です)。"
-            + "受信中は使えません。SSB/FMは測定開始時に自動で止めます。タブを離れると検索は止まります。",
+            + "受信中は使えません。SSB/FMは測定開始時に自動で止めます。タブを離れると検索は止まります。"
+            + "(画像は、AGC OFF(手動60dB)・オンデバイス復調ONで1回測定した例。1273MHzで送信した自局のDATV信号が山として表れています)",
         "Sweeps ±5/10/20 MHz around the operating frequency (Frequency tab) in kHz steps, measures Pluto's RSSI, "
             + "and shows a graph and the strongest frequency (a smaller RSSI value means a stronger signal). Choose "
             + "Repeat (until Stop Measuring) or Once; the RX gain (AGC/manual) is shared with the Config 2 tab. When on-device "
             + "demodulation (Config 1 tab) is on, this is a test mode: the app also transmits the test pattern and "
             + "measures its own signal (always connect an attenuator). When it is off, the app does not transmit and "
             + "measures the other station (a flat graph is normal if nobody is transmitting). It cannot run while "
-            + "receiving; SSB/FM is stopped automatically when measuring starts. Leaving the tab stops the search.",
+            + "receiving; SSB/FM is stopped automatically when measuring starts. Leaving the tab stops the search. "
+            + "(The image shows one measurement with AGC off (manual 60 dB) and on-device demodulation on; the station's "
+            + "own DATV signal transmitted at 1273 MHz appears as the peak.)",
     ),
     HelpSection(
         "周波数", "Frequency",
@@ -188,14 +211,14 @@ private val helpSections = listOf(
     ),
     HelpSection(
         "設定１", "Config 1",
-        "表示言語(ホーム画面を除く全画面)、オンデバイス復調(GNU Radio)の有効/無効、PA/PTTコントローラを設定します。"
+        "オンデバイス復調(GNU Radio)の有効/無効と、PA/PTTコントローラを設定します(表示言語は上部バーで切り替えます)。"
             + "オンデバイス復調をONにすると、Pluto1台でRFのループバック試験ができます"
             + "(画像を送信しながら同時にその画像を受信します)。外部アッテネータなしで行うと"
             + "Plutoを破損する恐れがあるため、有効化時に必ず警告が表示されます。"
             + "「PA/PTTコントローラを使う」(既定ON)とIPアドレス(既定192.168.0.100)は、SSB/FMタブのPTTと"
             + "ESP32+W5500(W5500_PA_PTT_Control)の連携に使います(GET /tx?state=on|off)。",
-        "Sets the display language (all screens except Home), on-device demodulation (GNU Radio), and the PA/PTT "
-            + "controller. Enabling on-device demodulation lets you run an RF loopback test with a single Pluto "
+        "Sets on-device demodulation (GNU Radio) and the PA/PTT controller (the display language is switched in "
+            + "the top bar). Enabling on-device demodulation lets you run an RF loopback test with a single Pluto "
             + "(you transmit an image while receiving that same image). Doing so without an external attenuator can "
             + "damage the Pluto, so a warning is always shown before enabling it. \"Use the PA/PTT controller\" "
             + "(default: on) and its IP address (default: 192.168.0.100) link the SSB/FM tab's PTT to the ESP32+W5500 "
@@ -251,11 +274,13 @@ private val helpSections = listOf(
             + "demodulator when on-device demodulation is off.",
     ),
     HelpSection(
-        "アプリ再起動・終了", "App Restart and Quit",
-        "画面上部の「アプリ再起動」は送受信(DATV・SSB/FM)を止めてからPlutoの再起動要求を送り、Web UI/iiodの復旧を待ちます"
+        "上部バー(表示言語・アプリ再起動・終了)", "Top Bar (Language, App Restart, Quit)",
+        "上部バーの「日本語｜English」で表示言語を切り替えます(選択中の言語が水色で表示されます)。"
+            + "「アプリ再起動」は送受信(DATV・SSB/FM)を止めてからPlutoの再起動要求を送り、Web UI/iiodの復旧を待ちます"
             + "(アプリの起動時にも同じ処理を行います)。通信がおかしい時にお試しください。"
             + "「終了」を押すと確認のあとアプリを終了します。送信・受信中の場合は先に停止してください。",
-        "\"App Restart\" at the top stops TX/RX (DATV and SSB/FM), sends a reboot request to Pluto, and waits for its "
+        "Switch the display language with \"日本語 | English\" in the top bar (the selected language is shown in "
+            + "light blue). \"App Restart\" stops TX/RX (DATV and SSB/FM), sends a reboot request to Pluto, and waits for its "
             + "Web UI/iiod to come back online (the same happens when the app starts). Try this if communication "
             + "seems stuck. \"Quit\" closes the app after a confirmation; stop TX/RX first if they are running.",
     ),
@@ -418,6 +443,16 @@ fun HelpScreen(viewModel: AppViewModel, onNavigate: (String) -> Unit) {
                         color = BodyText,
                         fontSize = 13.sp,
                     )
+                    sectionImages[section.titleJA]?.forEach { image ->
+                        Image(
+                            painter = painterResource(image),
+                            contentDescription = settings.t(section.titleJA, section.titleEN),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .aspectRatio(HELP_IMAGE_ASPECT)
+                                .padding(top = 4.dp),
+                        )
+                    }
                 }
             }
         }

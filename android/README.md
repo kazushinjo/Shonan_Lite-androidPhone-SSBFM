@@ -70,9 +70,9 @@ Kotlin/Jetpack Compose port of Shonan (Swift/SwiftUI + Obj-C++, a DVB-S2 transce
 ### UI
 
 `ui/`の画面はHome画面上部のタブで切り替える単一画面構成: SSB/FM(`SsbFmScreen`)、(空白の区切り)、送信(`TxScreen`)、受信(`RxScreen`)、
-RSSI測定(`RssiScreen`)、周波数(`FrequencySettingsScreen`)、設定１(`SettingsScreen`: 表示言語・オンデバイス復調・PA/PTTコントローラ)、
+RSSI測定(`RssiScreen`)、周波数(`FrequencySettingsScreen`)、設定１(`SettingsScreen`: オンデバイス復調・PA/PTTコントローラ)、
 設定２(`GainPowerSettingsScreen`: 受信感度・送信出力)、設定３(`ModCodSettingsScreen`: シンボルレート・誤り訂正・変調方式)、
-設定４(`SourceOutputSettingsScreen`: 映像ソース・配信先)、ヘルプ(`HelpScreen`)。タブレット版にある機器試験の画面は搭載していない
+設定４(`SourceOutputSettingsScreen`: 映像ソース・配信先)、ヘルプ(`HelpScreen`。各タブの説明に実機の画面画像`res/drawable-nodpi/help_*.webp`を表示)。表示言語の切り替えは上部バー(「アプリ再起動」の左)。タブレット版にある機器試験の画面は搭載していない
 (機器試験の`Dvbs2TestRunner`はコードとして残っているがUIからは使わない)。DATVの設定は`SettingsStore`、SSB/FMの設定は
 `SsbFmSettingsStore`でSharedPreferencesへ永続化。
 
@@ -160,9 +160,9 @@ The received TS is continuously validated against 188-byte TS packet boundaries 
 
 The `ui/` screens form a single screen switched with tabs at the top of Home: SSB/FM (`SsbFmScreen`), (a blank spacer),
 Transmit (`TxScreen`), Receive (`RxScreen`), RSSI (`RssiScreen`), Frequency (`FrequencySettingsScreen`), Config 1
-(`SettingsScreen`: display language, on-device demodulation, PA/PTT controller), Config 2 (`GainPowerSettingsScreen`: receive
+(`SettingsScreen`: on-device demodulation, PA/PTT controller), Config 2 (`GainPowerSettingsScreen`: receive
 gain and transmit power), Config 3 (`ModCodSettingsScreen`: symbol rate, FEC, modulation), Config 4
-(`SourceOutputSettingsScreen`: video source and stream output), and Help (`HelpScreen`). The tablet version's Diagnostic screen is
+(`SourceOutputSettingsScreen`: video source and stream output), and Help (`HelpScreen`, which shows real-device screenshots `res/drawable-nodpi/help_*.webp` for each tab). The display language is switched in the top bar (left of "App Restart"). The tablet version's Diagnostic screen is
 not included (the diagnostic `Dvbs2TestRunner` remains in the code but is not used from the UI). DATV settings are persisted to
 SharedPreferences via `SettingsStore`, and SSB/FM settings via `SsbFmSettingsStore`.
 

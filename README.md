@@ -19,7 +19,7 @@ whose functions are switched with tabs at the top, to fit a narrow phone screen.
 
 ## 主な機能
 
-画面上部のタブで切り替えます(左から順に)。上部バーには「アプリ再起動」「終了」があります。
+画面上部のタブで切り替えます(左から順に)。上部バーには表示言語の切り替え(「日本語｜English」)・「アプリ再起動」・「終了」があります。
 
 | タブ | 内容 |
 |---|---|
@@ -29,7 +29,7 @@ whose functions are switched with tabs at the top, to fit a narrow phone screen.
 | 受信 | DATV受信(外部復調機器からのUDP-TS、またはオンデバイス復調)。ロックすると全画面表示 |
 | RSSI測定 | 運用周波数の周辺を走査してRSSIを測り、最も強い周波数を探す |
 | 周波数 | DATVのバンドと周波数 |
-| 設定１ | 表示言語・オンデバイス復調(GNU Radio)・PA/PTTコントローラ |
+| 設定１ | オンデバイス復調(GNU Radio)・PA/PTTコントローラ |
 | 設定２ | DATVの受信感度(AGC/手動 0〜73dB)・送信出力(出力減衰量 -70〜0dB) |
 | 設定３ | DATVのシンボルレート・誤り訂正(1/2・3/5・8/9)・変調方式(QPSK・8PSK) |
 | 設定４ | 映像ソース(カメラ/写真/テストパターン、マイク音声)・配信先(PlutoのIPアドレス、受信ポート) |
@@ -68,6 +68,8 @@ Pluto再起動、日本語/英語表示に対応します。
 
 ### 各タブの説明
 
+画面の画像は実機(日本語表示)で撮影したものです。
+
 - **SSB/FM**: DATVの送受信・RSSI測定とは同時に使えず、「開始」を押すとそれらを止めてから受信を始めます。開始時にPlutoの
   DATV送信処理(pluto_dvb)をSSHで止め、「停止」でPlutoの設定(サンプルレート・周波数・ゲイン)を開始前の状態へ戻します。
   - 周波数表示: MHz単位の7桁(例 1295.100、最下位は1kHz)。桁をタップするとその桁が同調ステップになり、「−」「+」で1ステップずつ
@@ -82,31 +84,61 @@ Pluto再起動、日本語/英語表示に対応します。
   - PA/PTTコントローラ連携: 「設定１」タブで「PA/PTTコントローラを使う」がONのときは、送信開始時にESP32+W5500
     (W5500_PA_PTT_Control)へ`GET /tx?state=on`を送って150ms待ってから電波を出し、送信終了時は電波を止めてから
     `GET /tx?state=off`を送ります。ONなのにESP32が応答しない場合は、警告を表示してPA/PTTを切り替えないまま送信します。
+
+  ![SSB/FMタブ(受信中)](docs/images/ssbfm.png)
+
 - **送信**: 「設定４」の映像ソースのプレビューを表示し、「送信開始」で現在の周波数・シンボルレート・変調方式・誤り訂正・出力減衰量で
   送信します。オンデバイス復調が有効なら「受信画面へ」ボタンで受信タブへ移動できます。
+
+  ![送信タブ(テストパターン)](docs/images/tx.png)
+
 - **受信**: 「受信開始」で受信を始め、ロックすると映像を全画面表示にします(上部のタブも隠れます)。画面をタップすると5秒間だけ
   状態カードとボタンを表示します。ロックが1.5秒以上外れると全画面表示を解除します。
+
+  ![受信タブ](docs/images/rx.png)
+
 - **RSSI測定**: 「周波数」タブの運用周波数を中心に±5/10/20MHzをステップ(kHz)ごとに走査し、RSSIのグラフと「最も強い周波数」を
   表示します(RSSIは値が小さいほど強い信号)。検索方法は「連続」(「測定停止」まで繰り返す)と「1回」、RXゲインは「設定２」と共通です。
   「設定１」のオンデバイス復調がONのときはテスト用で、「測定開始」と同時に自局もテストパターンで送信して自分の電波を測ります
   (アッテネータを必ず接続すること)。OFFのときは送信せず、相手局の電波を測ります(相手局が送信していなければグラフが平らなのは正常)。
   受信中は使えません。SSB/FMは測定開始時に自動で止めます。タブを離れると検索は止まります。
+  画像はAGC OFF(手動60dB)・オンデバイス復調ONで1回測定した例で、1273MHzで送信した自局のDATV信号が山として表れています。
+
+  ![RSSI測定の結果(AGC OFF・オンデバイス復調ON)](docs/images/rssi.png)
+
 - **周波数**: 左のバンド一覧から選ぶか、右のテンキーで周波数(kHz)を直接入力します。DATVの送信と受信で共通です
   (SSB/FMの周波数はSSB/FMタブで別に設定します)。
-- **設定１**: 表示言語(ホーム画面を除く)、オンデバイス復調(ONにするとPluto1台でRFループバック試験ができる。有効化時に
+
+  ![周波数タブ](docs/images/frequency.png)
+
+- **設定１**: オンデバイス復調(ONにするとPluto1台でRFループバック試験ができる。有効化時に
   アッテネータの警告を表示)、PA/PTTコントローラ(使う/使わない、IPアドレス)。
+
+  ![設定１(オンデバイス復調)](docs/images/config1_top.png)
+
+  ![設定１(PA/PTTコントローラ)](docs/images/config1_bottom.png)
+
 - **設定２**: DATVの受信感度(「自動(AGC)」または手動0〜73dB。受信のロック状態も表示)と送信出力(出力減衰量-70〜0dB)。
+
+  ![設定２](docs/images/config2.png)
+
 - **設定３**: シンボルレート(プリセット250k〜2000k、または直接入力100〜5000 kS/s)・誤り訂正・変調方式(コンステレーション表示付き)。
   下段に組み合わせと帯域幅・ビットレートの目安を表示します。
+
+  ![設定３](docs/images/config3.png)
+
 - **設定４**: 左が映像ソース(背面カメラ・前面カメラ・写真・テストパターン。写真にはコールサインと備考を焼き込める。
   マイク音声の送信ON/OFF)、右が配信先(PlutoのIPアドレスと「自動検出」、UDP-TSポート8282(固定)、受信用のTSポート/ステータスポート)。
   ここのPlutoのIPアドレスはDATV・SSB/FM・RSSI測定のすべてで使います。
-- **アプリ再起動・終了**: 「アプリ再起動」は送受信(DATV・SSB/FM)を止めてからPlutoへ再起動を要求し、復旧を待ちます
-  (起動時にも同じ処理を行います)。「終了」は確認のあとアプリを終了します。
+
+  ![設定４](docs/images/config4.png)
+
+- **上部バー**: 「日本語｜English」で表示言語を切り替えます(選択中の言語が水色)。「アプリ再起動」は送受信(DATV・SSB/FM)を
+  止めてからPlutoへ再起動を要求し、復旧を待ちます(起動時にも同じ処理を行います)。「終了」は確認のあとアプリを終了します。
 
 ## Features
 
-Switch with the tabs at the top (from left to right). The top bar has "App Restart" and "Quit".
+Switch with the tabs at the top (from left to right). The top bar has the language switch ("日本語 | English"), "App Restart", and "Quit".
 
 | Tab | Contents |
 |---|---|
@@ -116,7 +148,7 @@ Switch with the tabs at the top (from left to right). The top bar has "App Resta
 | Receive | DATV receive (UDP-TS from an external demodulator, or on-device demodulation); fullscreen when locked |
 | RSSI | Sweeps around the operating frequency, measures RSSI, and finds the strongest frequency |
 | Frequency | DATV band and frequency |
-| Config 1 | Display language, on-device demodulation (GNU Radio), PA/PTT controller |
+| Config 1 | On-device demodulation (GNU Radio), PA/PTT controller |
 | Config 2 | DATV receive gain (AGC or manual 0–73 dB) and transmit power (attenuation -70–0 dB) |
 | Config 3 | DATV symbol rate, FEC (1/2, 3/5, 8/9), and modulation (QPSK, 8PSK) |
 | Config 4 | Video source (camera/photo/test pattern, mic audio) and stream output (Pluto IP address, receive ports) |
@@ -157,6 +189,8 @@ bridge), reboots Pluto at startup, and supports Japanese and English.
 
 ### Tab Reference
 
+The screenshots were taken on a real device with the Japanese display.
+
 - **SSB/FM**: It cannot run at the same time as DATV TX/RX or RSSI measurement; tapping Start stops them first and then
   starts receiving. On start, the app stops Pluto's DATV transmitter process (pluto_dvb) over SSH, and Stop restores
   Pluto's settings (sample rate, frequencies, gains) to what they were before.
@@ -172,30 +206,62 @@ bridge), reboots Pluto at startup, and supports Japanese and English.
   - PA/PTT controller link: when "Use the PA/PTT controller" is on (Config 1 tab), at TX start the app sends
     `GET /tx?state=on` to the ESP32+W5500 (W5500_PA_PTT_Control), waits 150 ms, and then transmits; at TX end it stops
     transmitting first and then sends `GET /tx?state=off`. If it is on but the ESP32 does not respond, the app shows a warning and transmits without switching the PA/PTT.
+
+  ![SSB/FM tab (receiving)](docs/images/ssbfm.png)
+
 - **Transmit**: Shows a preview of the video source set on Config 4; Start transmits with the current frequency, symbol
   rate, modulation, FEC, and attenuation. When on-device demodulation is
   enabled, the "Receive Screen" button opens the Receive tab.
+
+  ![Transmit tab (test pattern)](docs/images/tx.png)
+
 - **Receive**: Start begins receiving; once locked, the video goes fullscreen (the tabs at the top are hidden too). Tap the
   screen to show the status card and buttons for 5 seconds. Fullscreen ends if the lock is lost for 1.5 seconds or more.
+
+  ![Receive tab](docs/images/rx.png)
+
 - **RSSI**: Sweeps ±5/10/20 MHz around the operating frequency (Frequency tab) in kHz steps and shows an RSSI graph and the
   strongest frequency (a smaller RSSI value means a stronger signal). Search modes are Repeat (until Stop Measuring) and Once; the RX
   gain is shared with Config 2. When on-device demodulation (Config 1) is on, this is a test mode: the app also transmits the
   test pattern and measures its own signal (always connect an attenuator). When it is off, the app does not transmit and
   measures the other station (a flat graph is normal if nobody is transmitting). It cannot run while receiving; SSB/FM is
   stopped automatically when measuring starts. Leaving the tab stops the search.
+  The image shows one measurement with AGC off (manual 60 dB) and on-device demodulation on; the station's own DATV
+  signal transmitted at 1273 MHz appears as the peak.
+
+  ![RSSI result (AGC off, on-device demodulation on)](docs/images/rssi.png)
+
 - **Frequency**: Choose a band from the list on the left, or type the frequency in kHz on the keypad on the right. DATV
   transmit and receive share it (the SSB/FM frequency is set separately on the SSB/FM tab).
-- **Config 1**: Display language (except the Home screen), on-device demodulation (enables an RF loopback test with a single
+
+  ![Frequency tab](docs/images/frequency.png)
+
+- **Config 1**: On-device demodulation (enables an RF loopback test with a single
   Pluto; an attenuator warning is shown when enabling it), and the PA/PTT controller (on/off, IP address).
+
+  ![Config 1 (on-device demodulation)](docs/images/config1_top.png)
+
+  ![Config 1 (PA/PTT controller)](docs/images/config1_bottom.png)
+
 - **Config 2**: DATV receive gain ("Auto (AGC)" or manual 0–73 dB; the receive lock state is also shown) and transmit power
   (attenuation -70–0 dB).
+
+  ![Config 2](docs/images/config2.png)
+
 - **Config 3**: Symbol rate (presets 250k–2000k, or Custom 100–5000 kS/s), FEC, and modulation (with a constellation
   diagram). The bottom line shows the combination and the estimated bandwidth and bit rate.
+
+  ![Config 3](docs/images/config3.png)
+
 - **Config 4**: Video source on the left (rear camera, front camera, photo, or test pattern; a callsign and note can be burned
   into the photo; mic audio on/off) and stream output on the right (Pluto's IP address with Auto-Detect, the fixed UDP-TS
   port 8282, and the TS/Status ports for receiving). This Pluto IP address is used for DATV, SSB/FM, and RSSI measurement.
-- **App Restart and Quit**: "App Restart" stops TX/RX (DATV and SSB/FM), asks Pluto to reboot, and waits for it to come back
-  (the same happens at startup). "Quit" closes the app after a confirmation.
+
+  ![Config 4](docs/images/config4.png)
+
+- **Top bar**: "日本語 | English" switches the display language (the selected one is light blue). "App Restart" stops TX/RX
+  (DATV and SSB/FM), asks Pluto to reboot, and waits for it to come back (the same happens at startup). "Quit" closes the app
+  after a confirmation.
 
 ## SSB/FM機能の技術メモ / Technical Notes on SSB/FM
 
