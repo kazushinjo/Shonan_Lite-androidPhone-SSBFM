@@ -132,7 +132,7 @@ class SsbFmController(
                 if (ok) {
                     isRunning = true
                     startPolling()
-                    val host = s.pttControllerHost.trim()
+                    val host = s.activePttControllerHost
                     if (host.isNotEmpty() && !withContext(Dispatchers.IO) { Esp32PttClient.isReachable(host) }) {
                         error = tr(
                             "PA/PTTコントローラ(ESP32 $host)に接続できません。このままではPTTを押しても送信しません",
@@ -157,7 +157,7 @@ class SsbFmController(
         if (!isRunning) return
         pollJob?.cancel()
         val wasTransmitting = isTransmitting
-        val host = settings.pttControllerHost.trim()
+        val host = settings.activePttControllerHost
         val message = withContext(nativeDispatcher) {
             n.stop()
             if (wasTransmitting && host.isNotEmpty()) pttOffSequence(n, host) else null
@@ -185,7 +185,7 @@ class SsbFmController(
         val n = native ?: return
         if (!isRunning || on == isTransmitting) return
         isTransmitting = on
-        val host = settings.pttControllerHost.trim()
+        val host = settings.activePttControllerHost
         scope.launch {
             val message = withContext(nativeDispatcher) {
                 if (on) pttOnSequence(n, host) else pttOffSequence(n, host)
@@ -290,6 +290,8 @@ class SsbFmController(
     fun setPttLatch(latch: Boolean) = update { it.copy(pttLatch = latch) }
 
     fun setPttControllerHost(host: String) = update { it.copy(pttControllerHost = host.trim()) }
+
+    fun setPttControllerEnabled(enabled: Boolean) = update { it.copy(pttControllerEnabled = enabled) }
 
     private fun update(change: (SsbFmSettings) -> SsbFmSettings) {
         settings = change(settings)

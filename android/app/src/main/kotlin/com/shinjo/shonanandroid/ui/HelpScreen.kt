@@ -90,14 +90,14 @@ private val helpSections = listOf(
             + "周波数表示の桁をタップすると同調ステップ、長押しで直接入力、右の1.2G・2.4G・5.6Gでバンドを"
             + "切り替えます(バンドごとに最後の周波数とモードを覚えます)。スペクトル/ウォーターフォールを"
             + "左右にドラッグすると同調、タップするとその周波数へ移動します。スケルチはFMのみ有効です。"
-            + "「設定」タブでPA/PTTコントローラ(ESP32+W5500)のIPアドレスを入れておくと、PTTに連動して"
+            + "「設定」タブで「PA/PTTコントローラを使う」をONにしてESP32+W5500のIPアドレスを入れておくと、PTTに連動して"
             + "送信開始/終了を通知します(応答がない場合は送信しません)。",
         "Transmit and receive USB and FM with Pluto (not at the same time as DATV). Tap Start to begin "
             + "receiving; the radio transmits while PTT is held (or toggles with latching PTT). Tap a digit "
             + "of the frequency to choose the tuning step, long-press to type a frequency, and use the "
             + "1.2G/2.4G/5.6G buttons to change band (each band remembers its last frequency and mode). "
             + "Drag the spectrum/waterfall to tune, or tap it to jump to that frequency. Squelch works in FM "
-            + "only. If the PA/PTT controller (ESP32+W5500) IP address is set on the Settings tab, PTT "
+            + "only. If \"Use the PA/PTT controller\" is on (Settings tab) with the ESP32+W5500 IP address, PTT "
             + "notifies it of TX start/stop (the app does not transmit if it does not respond).",
     ),
     HelpSection(

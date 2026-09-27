@@ -39,9 +39,15 @@ data class SsbFmSettings(
     val txAttenuationDb: Float = 10f,
     /** trueならPTTボタンが押す度に送信/受信を切り替える。 */
     val pttLatch: Boolean = false,
-    /** PA/PTTコントローラ(ESP32+W5500)のIPアドレス。空ならPTT連携しない。 */
+    /** PA/PTTコントローラ(ESP32+W5500)とPTTを連携するか。 */
+    val pttControllerEnabled: Boolean = false,
+    /** PA/PTTコントローラ(ESP32+W5500)のIPアドレス。 */
     val pttControllerHost: String = "192.168.0.100",
 ) {
+    /** 連携に使うアドレス。連携しない(OFFまたは空欄)なら空文字。 */
+    val activePttControllerHost: String
+        get() = if (pttControllerEnabled) pttControllerHost.trim() else ""
+
     companion object {
         const val SQUELCH_OFF = -200f
         /** 周波数表示の最下位桁(1kHz)。これより細かいステップは使わない。 */
@@ -72,6 +78,7 @@ object SsbFmSettingsStore {
             rxGainDb = p.getFloat("rxGainDb", d.rxGainDb),
             txAttenuationDb = p.getFloat("txAttenuationDb", d.txAttenuationDb),
             pttLatch = p.getBoolean("pttLatch", d.pttLatch),
+            pttControllerEnabled = p.getBoolean("pttControllerEnabled", d.pttControllerEnabled),
             pttControllerHost = p.getString("pttControllerHost", d.pttControllerHost) ?: d.pttControllerHost,
         )
     }
@@ -104,6 +111,7 @@ object SsbFmSettingsStore {
             .putFloat("rxGainDb", s.rxGainDb)
             .putFloat("txAttenuationDb", s.txAttenuationDb)
             .putBoolean("pttLatch", s.pttLatch)
+            .putBoolean("pttControllerEnabled", s.pttControllerEnabled)
             .putString("pttControllerHost", s.pttControllerHost)
             .apply()
     }

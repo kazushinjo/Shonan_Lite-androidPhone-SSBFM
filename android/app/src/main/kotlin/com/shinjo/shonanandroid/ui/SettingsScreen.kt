@@ -110,11 +110,22 @@ fun SettingsScreen(viewModel: AppViewModel, onNavigate: (String) -> Unit) {
                 style = MaterialTheme.typography.bodySmall,
             )
             Text(settings.t("PA/PTTコントローラ(ESP32+W5500)", "PA/PTT Controller (ESP32+W5500)"), style = MaterialTheme.typography.titleMedium)
+            val pttControllerEnabled = viewModel.ssbFm.settings.pttControllerEnabled
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Switch(
+                    checked = pttControllerEnabled,
+                    onCheckedChange = { viewModel.ssbFm.setPttControllerEnabled(it) },
+                )
+                Text(
+                    settings.t("PA/PTTコントローラを使う", "Use the PA/PTT controller"),
+                    modifier = Modifier.padding(start = 8.dp),
+                )
+            }
             OutlinedTextField(
                 value = viewModel.ssbFm.settings.pttControllerHost,
                 onValueChange = { viewModel.ssbFm.setPttControllerHost(it) },
+                enabled = pttControllerEnabled,
                 label = { Text(settings.t("IPアドレス", "IP address")) },
-                placeholder = { Text(settings.t("未使用の場合は空欄", "Leave empty if not used")) },
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth(),
             )
@@ -122,12 +133,12 @@ fun SettingsScreen(viewModel: AppViewModel, onNavigate: (String) -> Unit) {
                 settings.t(
                     "W5500_PA_PTT_ControlのESP32+W5500ボードのIPアドレス。SSB/FMタブのPTTに連動して送信開始/終了を"
                         + "通知します(GET /tx?state=on|off)。送信開始はESP32へ通知して150ms待ってからRFを出し、"
-                        + "送信終了はRFを止めてから通知します。アドレスを入れているのにESP32が応答しない場合は送信しません。"
-                        + "空欄なら連携しません。",
+                        + "送信終了はRFを止めてから通知します。「使う」にしているのにESP32が応答しない場合は送信しません。"
+                        + "「使う」をOFFにすると、ESP32には通知せずに送信します。",
                     "IP address of the ESP32+W5500 board (W5500_PA_PTT_Control). The SSB/FM tab's PTT notifies it of "
                         + "TX start/stop (GET /tx?state=on|off): on start it notifies, waits 150 ms, then sends RF; on stop "
-                        + "it stops RF first, then notifies. If an address is set but the ESP32 does not respond, the app "
-                        + "does not transmit. Leave empty to disable.",
+                        + "it stops RF first, then notifies. If it is enabled but the ESP32 does not respond, the app "
+                        + "does not transmit. When turned off, the app transmits without notifying the ESP32.",
                 ),
                 style = MaterialTheme.typography.bodySmall,
             )
