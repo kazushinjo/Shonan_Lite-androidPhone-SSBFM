@@ -1,0 +1,14 @@
+prefix=/Users/kazuichishinjo/AppDev/shonan-android/android/third_party/ffmpeg-mpegts-install-arm64-v8a
+exec_prefix=${prefix}
+libdir=/Users/kazuichishinjo/AppDev/shonan-android/android/third_party/ffmpeg-mpegts-install-arm64-v8a/lib
+includedir=/Users/kazuichishinjo/AppDev/shonan-android/android/third_party/ffmpeg-mpegts-install-arm64-v8a/include
+
+Name: libavutil
+Description: FFmpeg utility library
+Version: 59.39.100
+Requires: 
+Requires.private: 
+Conflicts:
+Libs: -L${libdir}  -lavutil -pthread -lm -latomic -landroid -lmediandk
+Libs.private: 
+Cflags: -I${includedir}

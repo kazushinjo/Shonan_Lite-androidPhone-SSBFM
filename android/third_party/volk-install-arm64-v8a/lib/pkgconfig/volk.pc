@@ -1,0 +1,13 @@
+prefix=/Users/kazuichishinjo/AppDev/rpi-dvbs2-receiver-gui-android/third_party/volk/build-android-arm64/install
+exec_prefix=/Users/kazuichishinjo/AppDev/rpi-dvbs2-receiver-gui-android/third_party/volk/build-android-arm64/install
+libdir=/Users/kazuichishinjo/AppDev/rpi-dvbs2-receiver-gui-android/third_party/volk/build-android-arm64/install/lib
+includedir=/Users/kazuichishinjo/AppDev/rpi-dvbs2-receiver-gui-android/third_party/volk/build-android-arm64/install/include
+LV_CXXFLAGS=
+
+
+Name: volk
+Description: VOLK: Vector Optimized Library of Kernels
+Requires:
+Version: 3.3
+Libs: -L${libdir} -lvolk
+Cflags: -I${includedir} ${LV_CXXFLAGS}

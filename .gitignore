@@ -1,0 +1,8 @@
+.DS_Store
+android/.gradle/
+android/**/.cxx/
+android/**/build/
+*.iml
+android/local.properties
+android/keystore/
+android/third_party/.build-tmp*

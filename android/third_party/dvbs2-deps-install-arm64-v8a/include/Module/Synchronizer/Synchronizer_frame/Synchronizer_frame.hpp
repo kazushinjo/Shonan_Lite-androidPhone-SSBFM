@@ -1,0 +1,81 @@
+#ifndef SYNCHRONIZER_FRAME_HPP
+#define SYNCHRONIZER_FRAME_HPP
+
+#include <vector>
+#include <complex>
+#include <streampu.hpp>
+
+#include "Module/Synchronizer/Synchronizer.hpp"
+
+namespace aff3ct
+{
+namespace module
+{
+
+namespace sfm
+{
+	enum class tsk : uint8_t { synchronize, synchronize1, synchronize2, SIZE };
+
+	namespace sck
+	{
+		enum class synchronize  : uint8_t { X_N1, DEL, FLG, TRI, Y_N2,                    status };
+		enum class synchronize1 : uint8_t { X_N1, cor_SOF, cor_PLSC,                      status };
+		enum class synchronize2 : uint8_t { X_N1, cor_SOF, cor_PLSC, DEL, FLG, TRI, Y_N2, status };
+	}
+}
+template <typename R = float>
+class Synchronizer_frame : public spu::module::Stateful, public spu::tools::Interface_reset
+{
+protected:
+	const int N_in;  /*!< Size of one frame (= number of samples in one frame) */
+	const int N_out; /*!< Number of samples after the synchronization process */
+	int delay;
+
+public:
+	inline spu::runtime::Task&   operator[](const sfm::tsk               t) { return spu::module::Module::operator[]((int)t);                              }
+	inline spu::runtime::Socket& operator[](const sfm::sck::synchronize  s) { return spu::module::Module::operator[]((int)sfm::tsk::synchronize )[(int)s]; }
+	inline spu::runtime::Socket& operator[](const sfm::sck::synchronize1 s) { return spu::module::Module::operator[]((int)sfm::tsk::synchronize1)[(int)s]; }
+	inline spu::runtime::Socket& operator[](const sfm::sck::synchronize2 s) { return spu::module::Module::operator[]((int)sfm::tsk::synchronize2)[(int)s]; }
+
+public:
+	Synchronizer_frame(const int N, const int n_frames = 1);
+	virtual ~Synchronizer_frame() = default;
+
+	int get_N_in() const;
+
+	int get_N_out() const;
+	int get_delay() const;
+	virtual void reset() = 0;
+
+	R    get_metric()      const {return this->_get_metric();     };
+	bool get_packet_flag() const {return this->_get_packet_flag();};
+
+
+	/*!
+	 * \brief Synchronizes a vector of samples.
+	 *
+	 * By default this method does nothing.
+	 *
+	 * \param X_N1: a vector of samples.
+	 * \param Y_N2: a synchronized vector.
+	 */
+	template <class AR = std::allocator<R>>
+	void synchronize(const std::vector<R,AR>& X_N1, std::vector<int>& DEL, std::vector<int>& FLG, std::vector<R,AR>& TRI, std::vector<R,AR>& Y_N2, const int frame_id = -1);
+
+	virtual void synchronize (const R *X_N1,                                      int* DEL, int* FLG, R *TRI, R *Y_N2, const int frame_id = -1);
+	virtual void synchronize1(const R *X_N1,       R *cor_SOF,       R *cor_PLSC,                                      const int frame_id = -1);
+	virtual void synchronize2(const R *X_N1, const R *cor_SOF, const R *cor_PLSC, int* DEL, int* FLG, R *TRI, R *Y_N2, const int frame_id = -1);
+
+protected:
+	virtual void _synchronize (const R *X_N1,                                      int* DEL, R *Y_N2, const int frame_id);
+	virtual void _synchronize1(const R *X_N1,       R *cor_SOF,       R *cor_PLSC,                    const int frame_id);
+	virtual void _synchronize2(const R *X_N1, const R *cor_SOF, const R *cor_PLSC, int* DEL, R *Y_N2, const int frame_id);
+
+	virtual R    _get_metric     () const = 0;
+	virtual bool _get_packet_flag() const = 0;
+};
+
+}
+}
+#include "Synchronizer_frame.hxx"
+#endif //SYNCHRONIZER_FRAME_HPP

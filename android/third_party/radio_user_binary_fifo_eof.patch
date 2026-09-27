@@ -1,0 +1,23 @@
+diff --git a/src/common/Module/Radio/Radio_user/Radio_user_binary.cpp b/src/common/Module/Radio/Radio_user/Radio_user_binary.cpp
+index e676622..8bc9890 100644
+--- a/src/common/Module/Radio/Radio_user/Radio_user_binary.cpp
++++ b/src/common/Module/Radio/Radio_user/Radio_user_binary.cpp
+@@ -94,6 +94,18 @@ void Radio_user_binary<R>
+ 			}
+ 		}
+ 
++		// ★Android移植向けの変更点: input_fileがFIFO(named pipe)の場合、EOFはwriter側が
++		// FIFOを閉じた(=呼び出し元が意図的にstop()した)ことを意味するが、reset()が試みる
++		// seekg(0)はFIFOに対しては失敗し(non-seekable)、failbitが残ったままになる。この
++		// ケースを「異常終了」として例外を投げるのではなく、意図した停止として静かに
++		// done=trueにする(通常ファイル入力でreset()が成功する場合はこの分岐を通らない)。
++		if (input_file.fail() && input_file.eof() == false)
++		{
++			input_file.clear();
++			this->done = true;
++			return;
++		}
++
+ 		if (input_file.fail())
+ 			throw spu::tools::runtime_error(__FILE__, __LINE__, __func__, "Unknown error during file reading.");
+ 	}

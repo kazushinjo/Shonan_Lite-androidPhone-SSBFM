@@ -1,0 +1,108 @@
+diff --git a/src/common/Module/Radio/Radio_user/Radio_user_binary.cpp b/src/common/Module/Radio/Radio_user/Radio_user_binary.cpp
+index e676622..f6f59ed 100644
+--- a/src/common/Module/Radio/Radio_user/Radio_user_binary.cpp
++++ b/src/common/Module/Radio/Radio_user/Radio_user_binary.cpp
+@@ -1,6 +1,10 @@
+ #include <typeinfo>
+ #include <fstream>
+ #include <string>
++#include <fcntl.h>
++#include <unistd.h>
++#include <cerrno>
++#include <cstring>
+ 
+ #include "Module/Radio/Radio_user/Radio_user_binary.hpp"
+ 
+@@ -14,7 +18,7 @@ Radio_user_binary<R>
+                     const std::string &output_filename,
+                     const bool auto_reset,
+                     const int n_frames)
+-: Radio<R>(N, n_frames), auto_reset(auto_reset), done(false)
++: Radio<R>(N, n_frames), output_fd(-1), auto_reset(auto_reset), done(false)
+ {
+ 	const std::string name = "Radio_user_binary";
+ 	this->set_name(name);
+@@ -32,11 +36,11 @@ Radio_user_binary<R>
+ 
+ 	if (!output_filename.empty())
+ 	{
+-		output_file.open(output_filename.c_str(), std::ios::out | std::ios::binary);
+-		if (output_file.fail())
++		output_fd = ::open(output_filename.c_str(), O_WRONLY);
++		if (output_fd < 0)
+ 		{
+ 			std::stringstream message;
+-			message << "'output_filename' file name is invalid: failbit is set.";
++			message << "'output_filename' file name is invalid: " << std::strerror(errno);
+ 			throw spu::tools::runtime_error(__FILE__, __LINE__, __func__, message.str());
+ 		}
+ 	}
+@@ -52,21 +56,38 @@ Radio_user_binary<R>
+ {
+ }
+ 
++template <typename R>
++Radio_user_binary<R>
++::~Radio_user_binary()
++{
++	if (output_fd >= 0) ::close(output_fd);
++}
++
+ template <typename R>
+ void Radio_user_binary<R>
+ ::_send(const R *X_N1, const int frame_id)
+ {
+-	if (!output_file.is_open())
++	if (output_fd < 0)
+ 	{
+ 		std::stringstream message;
+ 		message << "'input_file' is not open.";
+ 		throw spu::tools::runtime_error(__FILE__, __LINE__, __func__, message.str());
+ 	}
+ 
+-	output_file.write(reinterpret_cast<const char*>(X_N1), 2 * this->N * sizeof(R));
+-
+-	if (output_file.fail())
+-		throw spu::tools::runtime_error(__FILE__, __LINE__, __func__, "Unknown error during file reading.");
++	const char* buf = reinterpret_cast<const char*>(X_N1);
++	size_t remaining = 2 * (size_t)this->N * sizeof(R);
++	while (remaining > 0)
++	{
++		ssize_t n = ::write(output_fd, buf, remaining);
++		if (n < 0)
++		{
++			if (errno == EINTR) continue;
++			throw spu::tools::runtime_error(__FILE__, __LINE__, __func__,
++				std::string("Unknown error during file writing: ") + std::strerror(errno));
++		}
++		buf += n;
++		remaining -= (size_t)n;
++	}
+ }
+ 
+ template <typename R>
+diff --git a/src/common/Module/Radio/Radio_user/Radio_user_binary.hpp b/src/common/Module/Radio/Radio_user/Radio_user_binary.hpp
+index f068f36..0077488 100644
+--- a/src/common/Module/Radio/Radio_user/Radio_user_binary.hpp
++++ b/src/common/Module/Radio/Radio_user/Radio_user_binary.hpp
+@@ -15,7 +15,10 @@ class Radio_user_binary : public Radio<R>
+ {
+ private:
+ 	std::ifstream input_file;
+-	std::ofstream output_file;
++	// ★Shonan調査用: std::ofstreamでの書き込みが呼び出しごとに常駐メモリを増加させ続ける
++	// 事象を確認したため、iostreamのバッファリング/例外機構を経由しない生のwrite(2)に
++	// 置き換える。FIFO経由の出力先であることが前提。
++	int output_fd;
+ 	bool auto_reset;
+ 	bool done;
+ 
+@@ -30,7 +33,7 @@ public:
+ 	                  const std::string &input_filename,
+ 	                  const std::string &output_filename,
+ 	                  const int n_frames = 1);
+-	virtual ~Radio_user_binary() = default;
++	virtual ~Radio_user_binary();
+ 
+ 	bool is_done() const;
+ 	void reset();

@@ -1,0 +1,12 @@
+prefix=/Users/kazuichishinjo/AppDev/shonan-android/android/third_party/dvbs2-deps-install-arm64-v8a
+exec_prefix=${prefix}
+libdir=/Users/kazuichishinjo/AppDev/shonan-android/android/third_party/dvbs2-deps-install-arm64-v8a/lib
+includedir=/Users/kazuichishinjo/AppDev/shonan-android/android/third_party/dvbs2-deps-install-arm64-v8a/include
+
+Name: libiio
+Description: Library for interfacing IIO devices
+Version: 1.0
+
+Requires:
+Libs: -L${libdir} -liio
+Cflags: -I${includedir}

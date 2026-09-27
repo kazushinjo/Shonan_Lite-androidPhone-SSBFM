@@ -1,0 +1,11 @@
+prefix=/Users/kazuichishinjo/AppDev/rpi-dvbs2-receiver-gui-android/third_party/gnuradio/build-android-arm64/install
+exec_prefix=${prefix}
+libdir=${exec_prefix}/lib
+includedir=${prefix}/include
+
+Name: gnuradio-fft
+Description: GNU Radio's FFT signal processing blocks
+Requires: gnuradio-runtime
+Version: 3.10.12
+Libs: -L${libdir} -lgnuradio-fft
+Cflags: -I${includedir}

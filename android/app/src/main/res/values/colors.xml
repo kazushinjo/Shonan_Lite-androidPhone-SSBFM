@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- 江の島(片瀬海岸から望む昼間の江の島・シーキャンドル・弁天橋)モチーフの起動アイコン背景色。
+         実体は drawable/ic_launcher_background.xml のグラデーションで、この色はフォールバック用。 -->
+    <color name="ic_launcher_background">#6FB3DD</color>
+</resources>

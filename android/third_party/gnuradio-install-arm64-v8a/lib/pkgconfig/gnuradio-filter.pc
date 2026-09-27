@@ -1,0 +1,11 @@
+prefix=/Users/kazuichishinjo/AppDev/rpi-dvbs2-receiver-gui-android/third_party/gnuradio/build-android-arm64/install
+exec_prefix=${prefix}
+libdir=${exec_prefix}/lib
+includedir=${prefix}/include
+
+Name: gnuradio-filter
+Description: GNU Radio's filter signal processing blocks
+Requires: gnuradio-runtime gnuradio-fft
+Version: 3.10.12
+Libs: -L${libdir} -lgnuradio-filter
+Cflags: -I${includedir}

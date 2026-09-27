@@ -1,0 +1,11 @@
+prefix=/Users/kazuichishinjo/AppDev/rpi-dvbs2-receiver-gui-android/third_party/gnuradio/build-android-arm64/install
+exec_prefix=${prefix}
+libdir=${exec_prefix}/lib
+includedir=${prefix}/include
+
+Name: gnuradio-analog
+Description: GNU Radio blocks for analog communications
+Requires: gnuradio-runtime volk
+Version: 3.10.12
+Libs: -L${libdir} -lgnuradio-analog
+Cflags: -I${includedir}

@@ -1,0 +1,388 @@
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index ef18a78..f9d9706 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -115,6 +115,16 @@ endif(APPLE)
+ # Find OOT build dependencies
+ ########################################################################
+ find_package(Doxygen)
++
++# Android cross-build note: pybind11/Python bindings are never used by the
++# native JNI-embedded Android port (no Python runtime on-device), and the
++# Boost unit_test_framework component pulled in below is not referenced by
++# any target in this tree. Both are made optional here (default ON to keep
++# upstream desktop/Pi builds unchanged) so a cross-compile can skip them
++# with -DENABLE_PYTHON=OFF instead of requiring a target-arch Python/pybind11.
++option(ENABLE_PYTHON "Build Python bindings and QA tests" ON)
++
++if(ENABLE_PYTHON)
+ find_package(Boost REQUIRED unit_test_framework)
+ 
+ ########################################################################
+@@ -142,6 +152,7 @@ execute_process(
+     COMMAND "${PYTHON_EXECUTABLE}" -c
+     "try:\n import numpy\n import os\n inc_path = numpy.get_include()\n if os.path.exists(os.path.join(inc_path, 'numpy', 'arrayobject.h')):\n  print(inc_path, end='')\nexcept:\n pass"
+     OUTPUT_VARIABLE PYTHON_NUMPY_INCLUDE_DIR)
++endif(ENABLE_PYTHON)
+ 
+ ########################################################################
+ # Setup doxygen option
+@@ -186,7 +197,9 @@ add_subdirectory(include/gnuradio/dvbs2rx)
+ add_subdirectory(lib)
+ add_subdirectory(apps)
+ add_subdirectory(docs)
++if(ENABLE_PYTHON)
+ add_subdirectory(python/dvbs2rx)
++endif(ENABLE_PYTHON)
+ add_subdirectory(grc)
+ add_subdirectory(bench)
+ add_subdirectory(themes)
+diff --git a/apps/dvbs2-rx b/apps/dvbs2-rx
+index 61596ef..7403b73 100755
+--- a/apps/dvbs2-rx
++++ b/apps/dvbs2-rx
+@@ -919,6 +919,7 @@ class DVBS2RxTopBlock(gr.top_block, Qt.QWidget):
+         # PL Sync
+         plsync = dvbs2rx.plsync_cc(*self._plsync_params())
+         self.msg_connect((plsync, 'rotator_phase_inc'), (rotator, 'cmd'))
++        self.msg_connect((plsync, 'lock_lost'), (symbol_sync, 'reset'))
+ 
+         # XFECFRAME demapper
+         xfecframe_demapper = dvbs2rx.xfecframe_demapper_cb(
+diff --git a/include/gnuradio/dvbs2rx/symbol_sync_cc.h b/include/gnuradio/dvbs2rx/symbol_sync_cc.h
+index d51d0e0..f5aa362 100644
+--- a/include/gnuradio/dvbs2rx/symbol_sync_cc.h
++++ b/include/gnuradio/dvbs2rx/symbol_sync_cc.h
+@@ -75,6 +75,16 @@ public:
+                      int rrc_delay = 5,
+                      int n_subfilt = 128,
+                      int interp_method = 0);
++
++    /*!
++     * \brief Reset the symbol timing loop state.
++     *
++     * Clears the PI loop filter integrator, modulo-1 counter, and fractional
++     * timing offset estimate. Should be called after an external frame lock
++     * loss, so that timing re-acquisition does not start from a possibly
++     * stale/corrupted state left over from before the loss.
++     */
++    virtual void reset() = 0;
+ };
+ 
+ } // namespace dvbs2rx
+diff --git a/lib/CMakeLists.txt b/lib/CMakeLists.txt
+index b53dd31..a73997b 100644
+--- a/lib/CMakeLists.txt
++++ b/lib/CMakeLists.txt
+@@ -81,6 +81,13 @@ message(STATUS "Building for version: ${VERSION} / ${LIBVER}")
+ ########################################################################
+ # Build and register unit test
+ ########################################################################
++# Android cross-build note: these QA tests link Boost::unit_test_framework,
++# which the Android build does not provide (see top-level CMakeLists.txt
++# ENABLE_PYTHON note). Skip them entirely for that build.
++if(NOT ENABLE_PYTHON)
++    return()
++endif(NOT ENABLE_PYTHON)
++
+ include(GrTest)
+ 
+ # If your unit tests require special include paths, add them here
+diff --git a/lib/ldpc_decoder/CMakeLists.txt b/lib/ldpc_decoder/CMakeLists.txt
+index 8633c3b..1105fd3 100644
+--- a/lib/ldpc_decoder/CMakeLists.txt
++++ b/lib/ldpc_decoder/CMakeLists.txt
+@@ -1,6 +1,6 @@
+ if(CMAKE_SYSTEM_PROCESSOR MATCHES "(^arm)|(^aarch64)")
+   add_library(ldpc_decoder_neon STATIC ldpc_decoder_neon.cc)
+-  if(NOT CMAKE_SYSTEM_PROCESSOR MATCHES "(^aarch64)")
++  if(NOT CMAKE_SYSTEM_PROCESSOR MATCHES "(^aarch64)|(^arm64)")
+     target_compile_options(ldpc_decoder_neon PRIVATE -mfpu=neon)
+   endif()
+   list(APPEND LDPC_LIBS ldpc_decoder_neon)
+diff --git a/lib/ldpc_decoder/layered_decoder.hh b/lib/ldpc_decoder/layered_decoder.hh
+index 3e7ce8b..5b975a9 100644
+--- a/lib/ldpc_decoder/layered_decoder.hh
++++ b/lib/ldpc_decoder/layered_decoder.hh
+@@ -13,6 +13,19 @@
+ #include "ldpc.hh"
+ #include <stdlib.h>
+ 
++// aligned_alloc() only exists starting at Android API 28; posix_memalign()
++// covers the same need (result freed the same way, via free()) back to API
++// 17, so route through it there instead of raising the whole build's min SDK.
++static inline void* portable_aligned_alloc(size_t alignment, size_t size)
++{
++#if defined(__ANDROID_API__) && __ANDROID_API__ < 28
++    void* ptr = nullptr;
++    return posix_memalign(&ptr, alignment, size) == 0 ? ptr : nullptr;
++#else
++    return aligned_alloc(alignment, size);
++#endif
++}
++
+ template <typename TYPE, typename ALG>
+ class LDPCDecoder
+ {
+@@ -130,8 +143,8 @@ public:
+         }
+         LT = ldpc->links_total();
+         delete ldpc;
+-        bnl = reinterpret_cast<TYPE*>(aligned_alloc(sizeof(TYPE), sizeof(TYPE) * LT));
+-        pty = reinterpret_cast<TYPE*>(aligned_alloc(sizeof(TYPE), sizeof(TYPE) * R));
++        bnl = reinterpret_cast<TYPE*>(portable_aligned_alloc(sizeof(TYPE), sizeof(TYPE) * LT));
++        pty = reinterpret_cast<TYPE*>(portable_aligned_alloc(sizeof(TYPE), sizeof(TYPE) * R));
+         uint16_t* tmp = new uint16_t[R * CNL];
+         for (int i = 0; i < q; ++i)
+             for (int j = 0; j < M; ++j)
+diff --git a/lib/ldpc_decoder_bb_impl.cc b/lib/ldpc_decoder_bb_impl.cc
+index abeec39..382c0fb 100644
+--- a/lib/ldpc_decoder_bb_impl.cc
++++ b/lib/ldpc_decoder_bb_impl.cc
+@@ -20,6 +20,7 @@
+ #include <gnuradio/pdu.h>
+ #include <boost/format.hpp>
+ #include <cmath>
++#include <cstdlib>
+ 
+ #ifdef CPU_FEATURES_ARCH_ARM
+ #include "cpuinfo_arm.h"
+@@ -350,7 +351,14 @@ ldpc_decoder_bb_impl::ldpc_decoder_bb_impl(dvb_standard_t standard,
+     assert(decode != nullptr);
+     d_debug_logger->debug("LDPC decoder implementation: {:s}", impl);
+     d_soft = new int8_t[d_ldpc->code_len() * d_simd_size];
++#if defined(__ANDROID_API__) && __ANDROID_API__ < 28
++    // aligned_alloc() is only available starting at API 28; posix_memalign()
++    // covers the same need (freed the same way, via free()) back to API 17.
++    if (posix_memalign(&d_aligned_buffer, d_simd_size, d_simd_size * d_ldpc->code_len()) != 0)
++        d_aligned_buffer = nullptr;
++#else
+     d_aligned_buffer = aligned_alloc(d_simd_size, d_simd_size * d_ldpc->code_len());
++#endif
+     if (outputmode == OM_MESSAGE) {
+         set_output_multiple(d_kldpc_bytes * d_simd_size);
+         set_relative_rate((double)d_kldpc_bytes / d_nldpc);
+diff --git a/lib/pl_freq_sync.h b/lib/pl_freq_sync.h
+index e7de2ac..77f6753 100644
+--- a/lib/pl_freq_sync.h
++++ b/lib/pl_freq_sync.h
+@@ -14,6 +14,7 @@
+ #include <gnuradio/dvbs2rx/api.h>
+ #include <gnuradio/gr_complex.h>
+ #include <volk/volk_alloc.hh>
++#include <algorithm>
+ 
+ const double fine_foffset_corr_range = 3.3875e-4;
+ /* The pilot-mode fine frequency offset estimate is based on the phase difference
+@@ -333,6 +334,27 @@ public:
+      */
+     bool is_coarse_corrected() { return coarse_corrected; }
+ 
++    /**
++     * \brief Reset the frequency synchronizer state.
++     *
++     * Clears the coarse/fine frequency offset tracking state, including the
++     * cross-frame autocorrelation accumulator used for coarse estimation.
++     * Must be called whenever the physical layer frame lock is lost, so that
++     * re-acquisition does not mix stale pre-loss correlation data with
++     * samples from the new lock attempt.
++     */
++    void reset()
++    {
++        coarse_foffset = 0.0;
++        i_frame = 0;
++        coarse_corrected = false;
++        fine_foffset = 0.0;
++        w_angle_avg = 0.0;
++        fine_est_ready = false;
++        std::fill(pilot_corr.begin(), pilot_corr.end(), 0);
++    }
++
++
+     /**
+      * \brief Check whether a fine frequency offset estimate is available already.
+      *
+diff --git a/lib/plsync_cc_impl.cc b/lib/plsync_cc_impl.cc
+index c4acb6a..0f8abe1 100644
+--- a/lib/plsync_cc_impl.cc
++++ b/lib/plsync_cc_impl.cc
+@@ -161,6 +161,7 @@ plsync_cc_impl::plsync_cc_impl(int gold_code,
+ 
+     /* Message port */
+     message_port_register_out(d_port_id);
++    message_port_register_out(d_lock_lost_port_id);
+ 
+     /* This block only outputs data symbols, while pilot symbols are
+      * retained. So until we find the need, tags are not propagated */
+@@ -834,8 +835,17 @@ int plsync_cc_impl::general_work(int noutput_items,
+             for (int i = n_consumed; i < ninput_items[0]; i++) {
+                 // Step the frame synchronizer and keep refreshing the locked state. It
+                 // could change any time.
++                const bool was_locked = d_locked;
+                 bool is_sof = d_frame_sync->step(in[i]);
+                 d_locked = d_frame_sync->is_locked();
++                if (was_locked && !d_locked) {
++                    // Frame lock was just lost. Reset the frequency
++                    // synchronizer state so that re-acquisition does not mix
++                    // stale pre-loss correlation data with new samples.
++                    d_freq_sync->reset();
++                    GR_LOG_DEBUG_LEVEL(1, "Lock lost: frequency synchronizer state reset");
++                    message_port_pub(d_lock_lost_port_id, pmt::PMT_T);
++                }
+                 n_consumed++;
+                 if (!is_sof)
+                     continue;
+diff --git a/lib/plsync_cc_impl.h b/lib/plsync_cc_impl.h
+index f7108f4..cbfe715 100644
+--- a/lib/plsync_cc_impl.h
++++ b/lib/plsync_cc_impl.h
+@@ -119,6 +119,7 @@ private:
+     pls_info_t d_ccm_sis_pls;
+ 
+     const pmt::pmt_t d_port_id = pmt::mp("rotator_phase_inc");
++    const pmt::pmt_t d_lock_lost_port_id = pmt::mp("lock_lost");
+ 
+     /* Objects */
+     frame_sync* d_frame_sync;         /**< frame synchronizer */
+diff --git a/lib/symbol_sync_cc_impl.cc b/lib/symbol_sync_cc_impl.cc
+index f68bdef..b981891 100644
+--- a/lib/symbol_sync_cc_impl.cc
++++ b/lib/symbol_sync_cc_impl.cc
+@@ -10,6 +10,8 @@
+ #include "symbol_sync_cc_impl.h"
+ #include <gnuradio/filter/firdes.h>
+ #include <gnuradio/io_signature.h>
++#include <algorithm>
++#include <cmath>
+ 
+ namespace gr {
+ namespace dvbs2rx {
+@@ -123,6 +125,15 @@ gr_complex
+ polyphase_interpolator::operator()(const gr_complex* in, int m_k, double mu) const
+ {
+     int idx_subfilt = (int)std::floor(d_n_subfilt * mu);
++    // ★実機(Android)で、ロック直後の過渡応答等によりmuが[0,1)の範囲を外れる
++    // (loop()内のassert(d_mu >= 0 && d_mu < 1.0)がrelease buildでは無効化される
++    // ため素通りする)ケースを確認した。範囲外のidx_subfiltでd_rrc_subfiltersに
++    // 直接アクセスすると、SIGSEGV(libvolk.so内のvolk_32fc_32f_dot_prod_32fc)で
++    // general_work()呼び出しスレッドごとクラッシュする。ここで有効範囲にクランプし、
++    // 多少の一時的な精度低下と引き換えにクラッシュを防ぐ。
++    if (idx_subfilt < 0) idx_subfilt = 0;
++    else if (idx_subfilt >= static_cast<int>(d_rrc_subfilters.size()))
++        idx_subfilt = static_cast<int>(d_rrc_subfilters.size()) - 1;
+     const volk::vector<float>& subfilt = d_rrc_subfilters[idx_subfilt];
+     assert((m_k + 2 - d_subfilt_len) >= 0);
+     gr_complex result;
+@@ -266,6 +277,13 @@ symbol_sync_cc_impl::symbol_sync_cc_impl(float sps,
+ 
+     // Approximate output rate / input rate
+     set_inverse_relative_rate(d_sps);
++
++    // Async message port used to reset the timing loop state from outside this
++    // block's own scheduler thread (e.g. from plsync_cc on lock loss) without a
++    // data race, since GNU Radio dispatches message handlers on this block's own
++    // thread instead of the poster's thread.
++    message_port_register_in(d_reset_port_id);
++    set_msg_handler(d_reset_port_id, [this](pmt::pmt_t msg) { this->handle_reset_msg(msg); });
+ }
+ 
+ /*
+@@ -273,6 +291,18 @@ symbol_sync_cc_impl::symbol_sync_cc_impl(float sps,
+  */
+ symbol_sync_cc_impl::~symbol_sync_cc_impl() {}
+ 
++void symbol_sync_cc_impl::reset()
++{
++    d_vi = 0.0;
++    d_cnt = 1.0 - d_nominal_step;
++    d_mu = 0;
++    d_jump = d_sps;
++    d_init = false;
++    d_last_xi = 0;
++}
++
++void symbol_sync_cc_impl::handle_reset_msg(pmt::pmt_t msg) { reset(); }
++
+ void symbol_sync_cc_impl::forecast(int noutput_items,
+                                    gr_vector_int& ninput_items_required)
+ {
+@@ -369,7 +399,18 @@ std::pair<int, int> symbol_sync_cc_impl::loop(const gr_complex* in,
+         //
+         // As noted above, the counter decrements by W1 on the strobe iteration and by W2
+         // on the remaining iterations.
+-        d_jump = std::floor((d_cnt - W1) / W2) + 2;
++        double d_jump_raw = std::floor((d_cnt - W1) / W2) + 2;
++        // ★実機(iOS)で、W1/W2が負・NaN化した際にd_jump_rawもNaN/非正/桁外れの値になる
++        // ケースを確認した(下のassertはrelease buildで無効化され実効的に何もチェック
++        // しない)。NaNをint(d_jump)へ変換する処理系依存の未定義動作、または桁外れの
++        // ジャンプ量が、この後"n += d_jump"経由で基準点インデックスm_kを入力バッファの
++        // 範囲外へ押し出し、polyphase_interpolator内のVOLK呼び出しでSIGSEGVを起こす
++        // (d_muのクランプだけではこの経路を防げない)。ここでクランプし、無効な値は
++        // 1シンボル分(d_sps)の妥当なジャンプ量へフォールバックする。
++        if (std::isnan(d_jump_raw) || d_jump_raw < 1.0 || d_jump_raw > ninput_items) {
++            d_jump_raw = d_sps;
++        }
++        d_jump = static_cast<int>(d_jump_raw);
+         assert(d_jump > 0);
+ 
+         if (d_jump > 1) {
+@@ -394,6 +435,14 @@ std::pair<int, int> symbol_sync_cc_impl::loop(const gr_complex* in,
+         // would not underflow. However, due to numerical errors, d_mu may end up being
+         // equal to 1.0. To avoid that as much as possible, we use double for the mod-1
+         // counter arithmetic (W1, W2, d_cnt, cnt_basepoint, and d_mu) instead of float.
++        // ★実機(Android)で、ロック直後の過渡応答等によりW1/W2が負・NaN化し、d_muが
++        // [0,1)を大きく外れることを確認した(下のassertはrelease buildで無効化され
++        // 実効的に何もチェックしない)。範囲外のままinterp()に渡すとpolyphase_interpolator
++        // 内でd_rrc_subfiltersの範囲外アクセスを起こしSIGSEGVでクラッシュするため、
++        // ここでクランプして早期に無効化する。
++        if (!(d_mu >= 0.0 && d_mu < 1.0)) {
++            d_mu = std::isnan(d_mu) ? 0.0 : std::clamp(d_mu, 0.0, 0.999);
++        }
+         assert(d_mu >= 0 && d_mu < 1.0);
+     }
+ 
+diff --git a/lib/symbol_sync_cc_impl.h b/lib/symbol_sync_cc_impl.h
+index fcdcbe7..e898f26 100644
+--- a/lib/symbol_sync_cc_impl.h
++++ b/lib/symbol_sync_cc_impl.h
+@@ -102,6 +102,9 @@ private:
+     gr_complex d_last_xi;  /**< Last output interpolant */
+     std::vector<int> d_strobe_idx;     /**< Indexes of the output interpolants */
+     std::vector<tag_t> d_pending_tags; /**< Pending tags from the previous work */
++    const pmt::pmt_t d_reset_port_id = pmt::mp("reset"); /**< Async reset message port */
++
++    void handle_reset_msg(pmt::pmt_t msg);
+ 
+     // Interpolators
+     //
+@@ -133,6 +136,8 @@ public:
+ 
+     void forecast(int noutput_items, gr_vector_int& ninput_items_required);
+ 
++    void reset() override;
++
+     int general_work(int noutput_items,
+                      gr_vector_int& ninput_items,
+                      gr_vector_const_void_star& input_items,
+diff --git a/python/dvbs2rx/bindings/symbol_sync_cc_python.cc b/python/dvbs2rx/bindings/symbol_sync_cc_python.cc
+index f2411d9..b77582b 100644
+--- a/python/dvbs2rx/bindings/symbol_sync_cc_python.cc
++++ b/python/dvbs2rx/bindings/symbol_sync_cc_python.cc
+@@ -14,7 +14,7 @@
+ /* BINDTOOL_GEN_AUTOMATIC(0)                                                       */
+ /* BINDTOOL_USE_PYGCCXML(0)                                                        */
+ /* BINDTOOL_HEADER_FILE(symbol_sync_cc.h)                                          */
+-/* BINDTOOL_HEADER_FILE_HASH(9a1af62e0d1bde87191c0a0ee46e1169)                     */
++/* BINDTOOL_HEADER_FILE_HASH(41db7858892f5dd681c455d254b26ef6)                     */
+ /***********************************************************************************/
+ 
+ #include <pybind11/complex.h>
+@@ -45,5 +45,7 @@ void bind_symbol_sync_cc(py::module& m)
+              py::arg("rrc_delay") = 5,
+              py::arg("n_subfilt") = 128,
+              py::arg("interp_method") = 0,
+-             D(symbol_sync_cc, make));
++             D(symbol_sync_cc, make))
++
++        .def("reset", &symbol_sync_cc::reset, "Reset the symbol timing loop state.");
+ }

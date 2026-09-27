@@ -1,0 +1,23 @@
+diff --git a/src/Module/Decoder/BCH/Standard/Decoder_BCH_std.cpp b/src/Module/Decoder/BCH/Standard/Decoder_BCH_std.cpp
+index 158151641..6bb14f7c9 100644
+--- a/src/Module/Decoder/BCH/Standard/Decoder_BCH_std.cpp
++++ b/src/Module/Decoder/BCH/Standard/Decoder_BCH_std.cpp
+@@ -14,10 +14,14 @@ Decoder_BCH_std<B, R>::Decoder_BCH_std(const int& K, const int& N, const tools::
+   : Decoder_BCH<B, R>(K, N, GF_poly.get_t())
+   , t2(2 * this->t)
+   , YH_N(N)
+-  , elp(this->N_p2_1 + 2, std::vector<int>(this->N_p2_1))
+-  , discrepancy(this->N_p2_1 + 2)
+-  , l(this->N_p2_1 + 2)
+-  , u_lu(this->N_p2_1 + 2)
++  // ★Shonan調査(2026-08-01): elp等の作業配列を(N_p2_1+2)×N_p2_1(次の2の累乗ベース、
++  // DVB-S2 QPSK-S_3/5ではN_p2_1=16383)で確保すると約1.07GBの一括mallocになり実機で
++  // メモリ暴走・SIGKILLを招くバグがaff3ct本家に存在する。_decode()内で実際に使われる
++  // インデックスはt2(=2×訂正可能誤り数、DVB-S2 BCHでは約24)を超えないため縮小する。
++  , elp(t2 + 4, std::vector<int>(t2 + this->t + 4))
++  , discrepancy(t2 + 4)
++  , l(t2 + 4)
++  , u_lu(t2 + 4)
+   , s(t2 + 1)
+   , loc(this->t + 1)
+   , reg(this->t + 1)
