@@ -40,6 +40,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.sp
 import com.shinjo.shonanandroid.AppViewModel
+import com.shinjo.shonanandroid.core.AppLanguage
 import com.shinjo.shonanandroid.net.PlutoDiscoveryClient
 import com.shinjo.shonanandroid.net.PlutoRebootController
 import kotlinx.coroutines.Dispatchers
@@ -149,6 +150,21 @@ fun HomeScreen(viewModel: AppViewModel) {
                         fontWeight = FontWeight.Bold,
                         modifier = Modifier.weight(1f),
                     )
+                    // 表示言語の切り替え(「アプリ再起動」の左)。選択中の言語を水色の太字で示す。
+                    AppLanguage.entries.forEach { language ->
+                        val selected = settings.language == language
+                        TextButton(
+                            onClick = { viewModel.updateSettings { s -> s.copy(language = language) } },
+                            contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 6.dp),
+                        ) {
+                            Text(
+                                if (language == AppLanguage.JAPANESE) "日本語" else "English",
+                                color = if (selected) Color(0xFF87CEEB) else Color(0xFF9AA0A6),
+                                fontSize = 12.sp,
+                                fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal,
+                            )
+                        }
+                    }
                     TextButton(onClick = {
                         if (viewModel.isTransmitting) viewModel.stopTX()
                         if (viewModel.isReceiving) viewModel.stopRX()

@@ -6,7 +6,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -15,7 +14,6 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
@@ -29,7 +27,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.shinjo.shonanandroid.AppViewModel
-import com.shinjo.shonanandroid.core.AppLanguage
 
 /** Android版の動作モード・バンドプロファイル・詳細設定画面。 */
 @OptIn(ExperimentalMaterial3Api::class)
@@ -53,35 +50,6 @@ fun SettingsScreen(viewModel: AppViewModel, onNavigate: (String) -> Unit) {
                 .verticalScroll(scrollState),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-            Text(settings.t("表示言語", "Display Language"))
-            Row(modifier = Modifier.fillMaxWidth()) {
-                AppLanguage.entries.forEach { language ->
-                    Row(
-                        modifier = Modifier
-                            .weight(1f)
-                            .selectable(
-                                selected = (settings.language == language),
-                                onClick = { viewModel.updateSettings { s -> s.copy(language = language) } },
-                            )
-                            .padding(vertical = 8.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        RadioButton(
-                            selected = (settings.language == language),
-                            onClick = { viewModel.updateSettings { s -> s.copy(language = language) } },
-                        )
-                        Text(settings.t(language.displayName, language.displayNameEnglish), style = MaterialTheme.typography.bodyLarge)
-                    }
-                }
-            }
-            Text(
-                settings.t(
-                    "ホーム画面(常時日英併記)を除く、アプリ全画面の表示言語を切り替えます。",
-                    "Switches the display language for all screens except the Home screen, which always shows both Japanese and English.",
-                ),
-                style = MaterialTheme.typography.bodySmall,
-            )
-
             Text(settings.t("受信復調", "Receive Demodulation"), style = MaterialTheme.typography.titleMedium)
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Switch(
@@ -106,6 +74,22 @@ fun SettingsScreen(viewModel: AppViewModel, onNavigate: (String) -> Unit) {
                 ),
                 style = MaterialTheme.typography.bodySmall,
             )
+            if (settings.useOnDeviceGRDVBS2Rx) {
+                Text(
+                    settings.t(
+                        "ロールオフ: %.2f(固定)".format(settings.dvbs2Rolloff),
+                        "Roll-off: %.2f (fixed)".format(settings.dvbs2Rolloff),
+                    ),
+                )
+                Text(
+                    settings.t(
+                        "Plutoのオンボード変調はロールオフ0.35固定で変更できないため、この値は編集できません。オンデバイス復調もPlutoに合わせて0.35固定で復調します。",
+                        "Pluto's onboard modulator has a fixed roll-off of 0.35 and cannot be changed, so this value is not editable. On-device demodulation also fixes it at 0.35 to match Pluto.",
+                    ),
+                    style = MaterialTheme.typography.bodySmall,
+                )
+            }
+
             Text(settings.t("PA/PTTコントローラ(ESP32+W5500)", "PA/PTT Controller (ESP32+W5500)"), style = MaterialTheme.typography.titleMedium)
             val pttControllerEnabled = viewModel.ssbFm.settings.pttControllerEnabled
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -139,22 +123,6 @@ fun SettingsScreen(viewModel: AppViewModel, onNavigate: (String) -> Unit) {
                 ),
                 style = MaterialTheme.typography.bodySmall,
             )
-
-            if (settings.useOnDeviceGRDVBS2Rx) {
-                Text(
-                    settings.t(
-                        "ロールオフ: %.2f(固定)".format(settings.dvbs2Rolloff),
-                        "Roll-off: %.2f (fixed)".format(settings.dvbs2Rolloff),
-                    ),
-                )
-                Text(
-                    settings.t(
-                        "Plutoのオンボード変調はロールオフ0.35固定で変更できないため、この値は編集できません。オンデバイス復調もPlutoに合わせて0.35固定で復調します。",
-                        "Pluto's onboard modulator has a fixed roll-off of 0.35 and cannot be changed, so this value is not editable. On-device demodulation also fixes it at 0.35 to match Pluto.",
-                    ),
-                    style = MaterialTheme.typography.bodySmall,
-                )
-            }
         }
     }
 
