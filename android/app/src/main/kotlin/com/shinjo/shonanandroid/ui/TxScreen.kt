@@ -121,15 +121,18 @@ fun TxScreen(viewModel: AppViewModel, onNavigate: (String) -> Unit) {
                 }
             }
 
+            // ★右の状態カード(360dp)を除いた残り幅に収まるよう、ボタンは等幅・低めにして1行に並べる。
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.Center,
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
             ) {
                 Button(
                     onClick = { if (running) viewModel.stopTX() else viewModel.startTX() },
                     enabled = !preparing,
                     colors = ButtonDefaults.buttonColors(containerColor = if (running) StopColor else StartColor),
                     shape = RoundedCornerShape(8.dp),
+                    contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 4.dp),
+                    modifier = Modifier.weight(1f).height(36.dp),
                 ) {
                     Text(
                         when {
@@ -137,18 +140,18 @@ fun TxScreen(viewModel: AppViewModel, onNavigate: (String) -> Unit) {
                             running -> settings.t("送信停止", "Stop")
                             else -> settings.t("送信開始", "Start")
                         },
+                        fontSize = 13.sp,
                         fontWeight = FontWeight.Bold,
+                        maxLines = 1,
                     )
                 }
-                Spacer(modifier = Modifier.width(8.dp))
                 if (settings.useOnDeviceGRDVBS2Rx) {
-                    SecondaryButton(settings.t("受信画面へ", "Receive Screen")) {
+                    SecondaryButton(settings.t("受信画面へ", "Receive Screen"), Modifier.weight(1f)) {
                         onNavigate("rx")
                     }
-                    Spacer(modifier = Modifier.width(8.dp))
                 }
-                SecondaryButton(settings.t("設定１", "Config 1")) {
-                    onNavigate("settings")
+                SecondaryButton(settings.t("ホームへ戻る", "Home"), Modifier.weight(1f)) {
+                    onNavigate(HOME_ROUTE)
                 }
             }
         }
@@ -250,12 +253,14 @@ private fun StatusFieldRow(vararg fields: Pair<String, String>) {
 }
 
 @Composable
-private fun SecondaryButton(text: String, onClick: () -> Unit) {
+private fun SecondaryButton(text: String, modifier: Modifier = Modifier, onClick: () -> Unit) {
     Button(
         onClick = onClick,
         colors = ButtonDefaults.buttonColors(containerColor = SecondaryButtonColor),
         shape = RoundedCornerShape(8.dp),
+        contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 4.dp),
+        modifier = modifier.height(36.dp),
     ) {
-        Text(text, color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+        Text(text, color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Bold, maxLines = 1)
     }
 }

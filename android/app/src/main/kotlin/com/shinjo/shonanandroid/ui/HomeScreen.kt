@@ -46,6 +46,9 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
+/** 「ホームへ戻る」の行き先。起動時に開く一番左のSSB/FMタブをホームとする。 */
+const val HOME_ROUTE = "ssbfm"
+
 private data class HomeTab(val titleJA: String, val titleEN: String, val route: String) {
     /** 見た目の区切りのためだけに1タブ分の空白を置く、押せないダミータブ。 */
     val isSpacer: Boolean get() = route.isEmpty()
@@ -92,7 +95,7 @@ fun HomeScreen(viewModel: AppViewModel) {
     val settings = viewModel.settings
     val scope = rememberCoroutineScope()
     var showQuitConfirmation by remember { mutableStateOf(false) }
-    var selectedRoute by remember { mutableStateOf("ssbfm") }
+    var selectedRoute by remember { mutableStateOf(HOME_ROUTE) }
     // ★受信タブが全画面表示になっている間は、この上部バー・TabRowも含めて隠す
     // (利用者の要望: 「タブの表示が消えても問題ない」)。他タブへ切り替えたら解除する。
     var rxFullscreen by remember { mutableStateOf(false) }

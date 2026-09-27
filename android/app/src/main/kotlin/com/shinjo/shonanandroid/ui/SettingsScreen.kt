@@ -44,7 +44,7 @@ fun SettingsScreen(viewModel: AppViewModel, onNavigate: (String) -> Unit) {
             TopAppBar(
                 title = { Text(settings.t("設定１", "Config 1")) },
                 navigationIcon = {
-                    HomeBackAction({ onNavigate("tx") }, settings.t("ホームへ戻る", "Home"))
+                    HomeBackAction({ onNavigate(HOME_ROUTE) }, settings.t("ホームへ戻る", "Home"))
                 },
             )
         },

@@ -145,11 +145,11 @@ private val helpSections = listOf(
         "「設定４」タブの「映像ソース」で選んだ映像のプレビューを表示します。「送信開始」を押すと、現在の"
             + "周波数・シンボルレート・変調方式・誤り訂正・出力減衰量の設定でPlutoから送信します"
             + "(映像ソースの選択自体はこの画面では行いません)。送信映像はHD(1280x720)・30fpsです。"
-            + "「設定１」ボタンで設定１タブへ移動でき、オンデバイス復調が有効な場合は「受信画面へ」ボタンで受信タブに移動できます。",
+            + "「ホームへ戻る」ボタンでホーム(SSB/FMタブ)へ移動でき、オンデバイス復調が有効な場合は「受信画面へ」ボタンで受信タブに移動できます。",
         "Shows a preview of the source selected on the Config 4 tab (Video Source). Tap Start to transmit via "
             + "Pluto with the current frequency, symbol rate, modulation, FEC, and attenuation settings "
             + "(the source itself is not selected here). The transmitted video is HD (1280x720) at 30 fps. "
-            + "The \"Config 1\" button opens the Config 1 tab, and when on-device demodulation is enabled, the "
+            + "The \"Home\" button returns to Home (the SSB/FM tab), and when on-device demodulation is enabled, the "
             + "\"Receive Screen\" button opens the Receive tab.",
     ),
     HelpSection(
@@ -291,7 +291,7 @@ fun HelpScreen(viewModel: AppViewModel, onNavigate: (String) -> Unit) {
 
     SettingsSubScreen(
         title = settings.t("ヘルプ", "Help"),
-        onBack = { onNavigate("tx") },
+        onBack = { onNavigate(HOME_ROUTE) },
         homeLabel = settings.t("ホームへ戻る", "Home"),
         // ★ヘルプは他画面よりも縦に長い文章主体のため、既定の余白(top16dp/bottom32dp)を
         // 詰めてスクロール可能な表示エリアを広く取る。

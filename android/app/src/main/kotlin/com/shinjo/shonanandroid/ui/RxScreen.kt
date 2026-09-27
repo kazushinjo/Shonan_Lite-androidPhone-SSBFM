@@ -295,8 +295,8 @@ fun RxScreen(
                         }
                         Spacer(modifier = Modifier.width(8.dp))
                     }
-                    SecondaryButton(settings.t("設定１", "Config 1")) {
-                        onNavigate("settings")
+                    SecondaryButton(settings.t("ホームへ戻る", "Home")) {
+                        onNavigate(HOME_ROUTE)
                     }
                 }
             }
