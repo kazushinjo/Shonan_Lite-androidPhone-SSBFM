@@ -56,6 +56,7 @@ import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.shinjo.shonanandroid.AppViewModel
+import com.shinjo.shonanandroid.ssbfm.SsbFmBand
 import com.shinjo.shonanandroid.ssbfm.SsbFmController
 import com.shinjo.shonanandroid.ssbfm.SsbFmMode
 import com.shinjo.shonanandroid.ssbfm.SsbFmNative
@@ -101,6 +102,11 @@ fun SsbFmScreen(viewModel: AppViewModel) {
                     onLongPress = { showFrequencyEntry = true },
                     modifier = Modifier.weight(1f),
                 )
+                SsbFmBand.entries.forEach { band ->
+                    BandChip(band.label, selected = c.currentBand == band, enabled = !c.isTransmitting) {
+                        c.selectBand(band)
+                    }
+                }
                 Text(
                     text = when {
                         c.isTransmitting -> "TX"
@@ -435,6 +441,24 @@ private fun PttButton(c: SsbFmController, t: (String, String) -> String, modifie
             fontSize = 20.sp,
             fontWeight = FontWeight.Bold,
         )
+    }
+}
+
+/** 周波数表示の右に並べるバンド選択ボタン。 */
+@Composable
+private fun BandChip(label: String, selected: Boolean, enabled: Boolean, onClick: () -> Unit) {
+    Button(
+        onClick = onClick,
+        enabled = enabled,
+        modifier = Modifier.padding(start = 4.dp).width(50.dp).height(30.dp),
+        shape = RoundedCornerShape(6.dp),
+        contentPadding = androidx.compose.foundation.layout.PaddingValues(0.dp),
+        colors = ButtonDefaults.buttonColors(
+            containerColor = if (selected) SsbAccent else Color(0xFF263238),
+            contentColor = Color.White,
+        ),
+    ) {
+        Text(label, fontSize = 12.sp, fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal, maxLines = 1)
     }
 }
 

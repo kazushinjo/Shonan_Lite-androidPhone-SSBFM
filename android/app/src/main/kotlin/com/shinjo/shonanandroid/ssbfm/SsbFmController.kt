@@ -185,6 +185,18 @@ class SsbFmController(
 
     fun setStep(stepHz: Long) = update { it.copy(stepHz = stepHz) }
 
+    /** 今の周波数が属するバンド(どのバンドにも入らなければnull)。 */
+    val currentBand: SsbFmBand? get() = SsbFmBand.of(settings.frequencyHz)
+
+    /** 今のバンドの周波数・モードを覚えてから、選んだバンドの最後の周波数・モードへ移る。 */
+    fun selectBand(band: SsbFmBand) {
+        if (isTransmitting) return
+        currentBand?.let { SsbFmSettingsStore.saveBandMemory(context, it, settings.frequencyHz, settings.mode) }
+        val (hz, mode) = SsbFmSettingsStore.loadBandMemory(context, band)
+        if (mode != settings.mode) setMode(mode)
+        setFrequency(hz)
+    }
+
     fun setAfGain(value: Float) {
         update { it.copy(afGain = value) }
         withNative { it.setAfGain(value) }

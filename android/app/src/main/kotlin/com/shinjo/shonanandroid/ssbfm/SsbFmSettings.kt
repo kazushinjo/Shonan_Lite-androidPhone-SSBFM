@@ -8,6 +8,21 @@ enum class SsbFmMode(val nativeId: Int, val label: String) {
     FM(2, "FM"),
 }
 
+/**
+ * SSB/FMタブのバンド。範囲は国内のアマチュアバンド割当て。[defaultHz]/[defaultMode]は
+ * そのバンドを初めて選んだときの値で、以後はバンドごとに最後の周波数・モードを覚える。
+ */
+enum class SsbFmBand(val label: String, val lowHz: Long, val highHz: Long, val defaultHz: Long, val defaultMode: SsbFmMode) {
+    G1_2("1.2G", 1_260_000_000L, 1_300_000_000L, 1_295_000_000L, SsbFmMode.FM),
+    G2_4("2.4G", 2_400_000_000L, 2_450_000_000L, 2_427_000_000L, SsbFmMode.FM),
+    G5_6("5.6G", 5_650_000_000L, 5_850_000_000L, 5_760_000_000L, SsbFmMode.FM),
+    ;
+
+    companion object {
+        fun of(hz: Long): SsbFmBand? = entries.firstOrNull { hz in it.lowHz..it.highHz }
+    }
+}
+
 /** SSB/FMタブの設定。DATV側の[com.shinjo.shonanandroid.core.AppSettings]とは独立に保存する。 */
 data class SsbFmSettings(
     val frequencyHz: Long = 433_000_000L,
@@ -54,6 +69,22 @@ object SsbFmSettingsStore {
             txAttenuationDb = p.getFloat("txAttenuationDb", d.txAttenuationDb),
             pttLatch = p.getBoolean("pttLatch", d.pttLatch),
         )
+    }
+
+    /** バンドごとに最後に使った周波数とモード。 */
+    fun loadBandMemory(context: Context, band: SsbFmBand): Pair<Long, SsbFmMode> {
+        val p = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        val hz = p.getLong("band_${band.name}_hz", band.defaultHz)
+        val mode = runCatching { SsbFmMode.valueOf(p.getString("band_${band.name}_mode", null)!!) }
+            .getOrDefault(band.defaultMode)
+        return hz to mode
+    }
+
+    fun saveBandMemory(context: Context, band: SsbFmBand, hz: Long, mode: SsbFmMode) {
+        context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE).edit()
+            .putLong("band_${band.name}_hz", hz)
+            .putString("band_${band.name}_mode", mode.name)
+            .apply()
     }
 
     fun save(context: Context, s: SsbFmSettings) {
