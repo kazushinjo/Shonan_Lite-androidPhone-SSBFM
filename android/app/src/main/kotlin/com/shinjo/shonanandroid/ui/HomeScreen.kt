@@ -54,13 +54,10 @@ private val homeTabs = listOf(
     HomeTab("受信", "Receive", "rx"),
     HomeTab("SSB/FM", "SSB/FM", "ssbfm"),
     HomeTab("周波数", "Frequency", "frequency"),
-    HomeTab("シンボルレート", "Symbol Rate", "symbolrate"),
-    HomeTab("誤り訂正", "FEC", "fec"),
-    HomeTab("変調方式", "Modulation", "modulation"),
+    HomeTab("設定２", "Config 2", "gainpower"),
+    HomeTab("設定３", "Config 3", "modcod"),
     HomeTab("映像ソース", "Video Source", "videosource"),
     HomeTab("配信先", "Stream Output", "streamoutput"),
-    HomeTab("受信感度", "RX Gain", "rxgain"),
-    HomeTab("送信出力", "TX Power", "txpower"),
     HomeTab("設定", "Config", "settings"),
     HomeTab("ヘルプ", "Help", "help"),
 )
@@ -206,13 +203,10 @@ fun HomeScreen(viewModel: AppViewModel) {
                     "rx" -> RxScreen(viewModel, onNavigate, onFullscreenChanged = { rxFullscreen = it })
                     "ssbfm" -> SsbFmScreen(viewModel)
                     "frequency" -> FrequencySettingsScreen(viewModel, onNavigate)
-                    "symbolrate" -> SymbolRateSettingsScreen(viewModel, onNavigate)
-                    "fec" -> FECSettingsScreen(viewModel, onNavigate)
-                    "modulation" -> ModulationSettingsScreen(viewModel, onNavigate)
+                    "gainpower" -> GainPowerSettingsScreen(viewModel)
+                    "modcod" -> ModCodSettingsScreen(viewModel)
                     "videosource" -> VideoSourceSettingsScreen(viewModel, onNavigate)
                     "streamoutput" -> StreamOutputSettingsScreen(viewModel, onNavigate)
-                    "rxgain" -> RxGainSettingsScreen(viewModel, onNavigate)
-                    "txpower" -> TxPowerSettingsScreen(viewModel, onNavigate)
                     "settings" -> SettingsScreen(viewModel, onNavigate)
                     "help" -> HelpScreen(viewModel, onNavigate)
                 }

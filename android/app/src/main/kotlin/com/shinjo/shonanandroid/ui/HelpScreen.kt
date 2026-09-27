@@ -37,16 +37,8 @@ private val txSteps = listOf(
         "On the Frequency tab, set the band and frequency (must match the receiver's frequency).",
     ),
     HelpStep(
-        "「シンボルレート」タブでシンボルレートを設定する(相手と一致させる)",
-        "On the Symbol Rate tab, set the symbol rate (must match the receiver).",
-    ),
-    HelpStep(
-        "「誤り訂正」タブでFEC(1/2・3/5・8/9)を選ぶ(相手と一致させる)",
-        "On the FEC tab, choose the code rate (1/2, 3/5, or 8/9); it must match the receiver.",
-    ),
-    HelpStep(
-        "「変調方式」タブで変調方式(QPSK・8PSK)を選ぶ(相手と一致させる)",
-        "On the Modulation tab, choose QPSK or 8PSK; it must match the receiver.",
+        "「設定３」タブでシンボルレート・誤り訂正(1/2・3/5・8/9)・変調方式(QPSK・8PSK)を設定する(相手と一致させる)",
+        "On the Config 3 tab, set the symbol rate, FEC (1/2, 3/5, or 8/9), and modulation (QPSK or 8PSK); they must match the receiver.",
     ),
     HelpStep(
         "「配信先」タブでPluto TxのIPアドレスを確認する(初回のみ。実機宛て送信時は送信先ポートの"
@@ -55,8 +47,8 @@ private val txSteps = listOf(
             + "Pluto hardware, data always goes to its fixed UDP-TS port (8282) regardless of the port field.",
     ),
     HelpStep(
-        "「送信出力」タブで出力減衰量を設定する(0dBが最大出力、負の値ほど出力が下がる)",
-        "On the TX Power tab, set the attenuation (0 dB is maximum output; more negative values reduce output).",
+        "「設定２」タブで出力減衰量を設定する(0dBが最大出力、負の値ほど出力が下がる)",
+        "On the Config 2 tab, set the attenuation (0 dB is maximum output; more negative values reduce output).",
     ),
     HelpStep(
         "「送信」タブでプレビューを確認し「送信開始」を押す",
@@ -67,8 +59,8 @@ private val txSteps = listOf(
 // ★受信時に設定すべき項目の推奨順序。オンデバイス復調(設定タブ)の有無で受信経路が変わる点に注意。
 private val rxSteps = listOf(
     HelpStep(
-        "「周波数」「シンボルレート」「誤り訂正」「変調方式」の各タブを、送信側と同じ値に設定する",
-        "Set Frequency, Symbol Rate, FEC, and Modulation to match the transmitting side.",
+        "「周波数」「設定３」の各タブを、送信側と同じ値に設定する",
+        "Set the Frequency and Config 3 tabs to match the transmitting side.",
     ),
     HelpStep(
         "「設定」タブで受信方式を選ぶ: オフ(既定)のままなら外部復調機器からのUDP-TSを「配信先」の"
@@ -80,8 +72,8 @@ private val rxSteps = listOf(
             + "transmitting at the same time, to protect the Pluto).",
     ),
     HelpStep(
-        "「受信感度」タブでAGC(自動)のままにするか、オフにして手動でゲインを設定する",
-        "On the RX Gain tab, keep AGC on, or turn it off and set the gain manually.",
+        "「設定２」タブでAGC(自動)のままにするか、オフにして手動でゲインを設定する",
+        "On the Config 2 tab, keep AGC on, or turn it off and set the gain manually.",
     ),
     HelpStep(
         "「受信」タブで「受信開始」を押す。ロックすると自動で映像が全画面表示になる",
@@ -121,25 +113,24 @@ private val helpSections = listOf(
             + "on the right. Transmit and Receive share the same setting.",
     ),
     HelpSection(
-        "シンボルレート", "Symbol Rate",
-        "左のプリセット(250k〜2Msym/s)からボタンで選ぶか、右のテンキーで直接入力します。"
-            + "送信と受信は同じ設定を共有します。",
-        "Choose a preset (250k to 2 Msym/s) on the left, or type a value directly on the keypad on "
-            + "the right. Transmit and Receive share the same setting.",
+        "設定２", "Config 2",
+        "DATVの受信感度と送信出力を設定します。受信感度は「自動(AGC)」をONにするとAGCがゲインを"
+            + "自動調整し、OFFにすると0〜73dBの範囲で手動調整できます。送信出力は出力減衰量を-70〜0dBの"
+            + "範囲で設定します(0dBが最大出力で、Plutoの送信出力減衰値としてそのまま適用されます)。",
+        "Set the DATV receive gain and transmit power. For receive gain, turn on \"Auto (AGC)\" to let "
+            + "AGC adjust the gain, or turn it off to set 0 to 73 dB manually. For transmit power, set the "
+            + "attenuation from -70 to 0 dB (0 dB is maximum output, applied directly as Pluto's TX attenuation).",
     ),
     HelpSection(
-        "誤り訂正", "FEC",
-        "1/2・3/5・8/9のいずれかをボタンで選びます(直接入力はできません)。"
-            + "送信と受信は同じ設定を共有します。",
-        "Choose 1/2, 3/5, or 8/9 with the buttons (no direct numeric entry). Transmit and Receive "
-            + "share the same setting.",
-    ),
-    HelpSection(
-        "変調方式", "Modulation",
-        "QPSK・8PSKのどちらかをボタンで選びます(直接入力はできません)。"
-            + "右側にコンステレーション(信号点配置)が表示されます。送信と受信は同じ設定を共有します。",
-        "Choose QPSK or 8PSK with the buttons (no direct numeric entry). The constellation "
-            + "diagram is shown on the right. Transmit and Receive share the same setting.",
+        "設定３", "Config 3",
+        "シンボルレート・誤り訂正(FEC)・変調方式を1画面で設定します。シンボルレートはプリセット"
+            + "(250k〜2Msym/s)から選ぶか「直接入力」で100〜5000 kS/sを入力します。誤り訂正は1/2・3/5・8/9、"
+            + "変調方式はQPSK・8PSKから選び、コンステレーション(信号点配置)が表示されます。下段に組み合わせと"
+            + "帯域幅・ビットレートの目安を表示します。送信と受信は同じ設定を共有します。",
+        "Set the symbol rate, FEC, and modulation on one screen. Choose a symbol-rate preset "
+            + "(250k to 2 Msym/s) or tap Custom to enter 100–5000 kS/s. Choose FEC 1/2, 3/5, or 8/9 and "
+            + "QPSK or 8PSK; the constellation is shown. The bottom line shows the combination and the "
+            + "estimated bandwidth and bit rate. Transmit and Receive share the same setting.",
     ),
     HelpSection(
         "映像ソース", "Video Source",
@@ -170,20 +161,6 @@ private val helpSections = listOf(
             + "search can take up to several tens of seconds). Auto-detection also runs once when the "
             + "app starts. The TS/Status ports under Receive Settings are used to listen for "
             + "UDP-TS from an external demodulator when on-device demodulation is off.",
-    ),
-    HelpSection(
-        "受信感度", "RX Gain",
-        "「自動調整」をONにするとAGCがゲインを自動調整します。OFFにすると0〜73dBの範囲で"
-            + "手動調整できます。",
-        "Turn on \"Auto\" to let AGC adjust the gain automatically, or turn it off to set the gain "
-            + "manually from 0 to 73 dB.",
-    ),
-    HelpSection(
-        "送信出力", "TX Power",
-        "出力減衰量を-70〜0dBの範囲で設定します。0dBが最大出力です。通常送信ではこの値が"
-            + "そのままPlutoの送信出力減衰値として適用されます。",
-        "Set the attenuation from -70 to 0 dB. 0 dB is maximum output. During normal transmission, "
-            + "this value is applied directly as Pluto's TX power attenuation.",
     ),
     HelpSection(
         "設定", "Settings",
