@@ -47,7 +47,7 @@ Pluto再起動、日本語/英語表示に対応します。
    (既定はON・192.168.0.100。使わない場合はOFFにします)。
 3. 「SSB/FM」タブでバンド(1.2G・2.4G・5.6G)とモード(USB・FM)を選び、周波数を合わせる。
 4. 「開始」を押して受信を始める(DATVの送受信・RSSI測定は自動で止まります)。
-5. PTTを押している間だけ送信する。終わったら「停止」を押す。
+5. PTTを押すと送信、もう一度押すと受信に戻る(トグル動作)。終わったら「停止」を押す。
 
 ### DATV送信の設定順序
 
@@ -78,7 +78,7 @@ Pluto再起動、日本語/英語表示に対応します。
   - スペクトル/ウォーターフォール(幅48kHz): 左右にドラッグすると同調、タップするとその周波数へ移動します。
   - Sメーター: 受信中は信号の強さ(相対値)、送信中はマイクレベルを表示します。
   - 音量・スケルチ(FMのみ有効。USBではグレー表示)・マイク・RF利得(AGCのチェックで自動)・送信減衰(0〜89dB)。
-  - PTT: 押している間だけ送信します。「PTTを押すたびに送受信を切り替える」をチェックすると押すたびに切り替えます。
+  - PTT: トグル動作です。押すと送信、もう一度押すと受信に戻ります(送信中はボタンが赤く「送信中」と表示)。
   - PA/PTTコントローラ連携: 「設定１」タブで「PA/PTTコントローラを使う」がONのときは、送信開始時にESP32+W5500
     (W5500_PA_PTT_Control)へ`GET /tx?state=on`を送って150ms待ってから電波を出し、送信終了時は電波を止めてから
     `GET /tx?state=off`を送ります。ONなのにESP32が応答しない場合は、警告を表示してPA/PTTを切り替えないまま送信します。
@@ -134,7 +134,7 @@ bridge), reboots Pluto at startup, and supports Japanese and English.
    IP address (default: on, 192.168.0.100). Turn it off if you do not use one.
 3. On the SSB/FM tab, choose the band (1.2G/2.4G/5.6G) and mode (USB/FM), then tune the frequency.
 4. Tap Start to begin receiving (DATV TX/RX and RSSI measurement are stopped automatically).
-5. Hold PTT to transmit. Tap Stop when you are finished.
+5. Tap PTT to transmit and tap it again to return to receive (toggle). Tap Stop when you are finished.
 
 ### Setup Order for DATV Transmit
 
@@ -168,7 +168,7 @@ bridge), reboots Pluto at startup, and supports Japanese and English.
   - Spectrum/waterfall (48 kHz wide): drag left/right to tune, or tap to jump to that frequency.
   - S-meter: shows the signal strength (relative) while receiving and the mic level while transmitting.
   - Volume, squelch (FM only; grayed out in USB), mic gain, RF gain (check AGC for automatic), and TX attenuation (0–89 dB).
-  - PTT: transmits while held. Check "Latching PTT" to toggle TX/RX with each press.
+  - PTT: toggle operation. Tap to transmit and tap again to return to receive (the button turns red and shows "TX" while transmitting).
   - PA/PTT controller link: when "Use the PA/PTT controller" is on (Config 1 tab), at TX start the app sends
     `GET /tx?state=on` to the ESP32+W5500 (W5500_PA_PTT_Control), waits 150 ms, and then transmits; at TX end it stops
     transmitting first and then sends `GET /tx?state=off`. If it is on but the ESP32 does not respond, the app shows a warning and transmits without switching the PA/PTT.

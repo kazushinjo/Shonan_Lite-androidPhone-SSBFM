@@ -47,8 +47,8 @@ private val ssbFmSteps = listOf(
         "Tap Start to begin receiving (DATV TX/RX and RSSI measurement are stopped automatically).",
     ),
     HelpStep(
-        "PTTを押している間だけ送信する。終わったら「停止」を押す",
-        "Hold PTT to transmit. Tap Stop when you are finished.",
+        "PTTを押すと送信、もう一度押すと受信に戻る(トグル動作)。終わったら「停止」を押す",
+        "Tap PTT to transmit and tap it again to return to receive (toggle). Tap Stop when you are finished.",
     ),
 )
 
@@ -119,7 +119,7 @@ private val helpSections = listOf(
             + "・スペクトル/ウォーターフォール(幅48kHz): 左右にドラッグすると同調、タップするとその周波数へ移動します。\n"
             + "・Sメーター: 受信中は信号の強さ(相対値)、送信中はマイクレベルを表示します。\n"
             + "・音量・スケルチ(FMのみ有効。USBではグレー表示)・マイク・RF利得(AGCのチェックで自動)・送信減衰(0〜89dB)。\n"
-            + "・PTT: 押している間だけ送信します。「PTTを押すたびに送受信を切り替える」をチェックすると押すたびに切り替えます。\n"
+            + "・PTT: トグル動作です。押すと送信、もう一度押すと受信に戻ります(送信中はボタンが赤く「送信中」と表示)。\n"
             + "・「設定１」タブで「PA/PTTコントローラを使う」がONのときは、送信開始時にESP32+W5500へ通知して150ms待ってから"
             + "電波を出し、送信終了時は電波を止めてから通知します。ESP32が応答しない場合は、警告を表示してPA/PTTを切り替えないまま送信します。",
         "Transmits and receives USB and FM with Pluto (a port of Langstone-V2). It cannot run at the same time as "
@@ -135,7 +135,7 @@ private val helpSections = listOf(
             + "- S-meter: shows the signal strength (relative) while receiving and the mic level while transmitting.\n"
             + "- Volume, squelch (FM only; grayed out in USB), mic gain, RF gain (check AGC for automatic), and TX "
             + "attenuation (0 to 89 dB).\n"
-            + "- PTT: transmits while held. Check \"Latching PTT\" to toggle TX/RX with each press.\n"
+            + "- PTT: toggle operation. Tap to transmit and tap again to return to receive (the button turns red and shows \"TX\" while transmitting).\n"
             + "- When \"Use the PA/PTT controller\" is on (Config 1 tab), the app notifies the ESP32+W5500 at TX start, "
             + "waits 150 ms, then transmits; at TX end it stops transmitting first and then notifies. If the ESP32 "
             + "does not respond, the app shows a warning and transmits without switching the PA/PTT.",

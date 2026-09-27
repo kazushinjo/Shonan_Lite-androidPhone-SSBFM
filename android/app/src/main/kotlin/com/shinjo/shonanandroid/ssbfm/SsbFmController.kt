@@ -295,8 +295,6 @@ class SsbFmController(
         withNative { it.setTxAttenuation(db.toDouble()) }
     }
 
-    fun setPttLatch(latch: Boolean) = update { it.copy(pttLatch = latch) }
-
     fun setPttControllerHost(host: String) = update { it.copy(pttControllerHost = host.trim()) }
 
     fun setPttControllerEnabled(enabled: Boolean) = update { it.copy(pttControllerEnabled = enabled) }

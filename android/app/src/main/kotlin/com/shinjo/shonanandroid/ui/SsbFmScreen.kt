@@ -212,19 +212,6 @@ fun SsbFmScreen(viewModel: AppViewModel) {
                     0f..89f,
                     "-${s.txAttenuationDb.toInt()}dB",
                 ) { c.setTxAttenuation(it) }
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Checkbox(
-                        checked = s.pttLatch,
-                        onCheckedChange = c::setPttLatch,
-                        colors = CheckboxDefaults.colors(checkedColor = SsbAccent),
-                        modifier = Modifier.size(28.dp),
-                    )
-                    Text(
-                        t("PTTを押すたびに送受信を切り替える", "Latching PTT"),
-                        color = Color.White,
-                        fontSize = 10.sp,
-                    )
-                }
             }
 
             PttButton(c, t, Modifier.fillMaxWidth().height(54.dp))
@@ -409,9 +396,9 @@ private fun WaterfallView(c: SsbFmController, modifier: Modifier) {
     }
 }
 
+/** PTT。押すたびに送信と受信を切り替える(トグル動作)。 */
 @Composable
 private fun PttButton(c: SsbFmController, t: (String, String) -> String, modifier: Modifier) {
-    val latch = c.settings.pttLatch
     val enabled = c.isRunning
     val controller by rememberUpdatedState(c)
     Box(
@@ -426,17 +413,9 @@ private fun PttButton(c: SsbFmController, t: (String, String) -> String, modifie
                 RoundedCornerShape(10.dp),
             )
             .border(1.dp, if (enabled) SsbTxRed else SsbBorder, RoundedCornerShape(10.dp))
-            .pointerInput(latch, enabled) {
+            .pointerInput(enabled) {
                 if (!enabled) return@pointerInput
-                if (latch) {
-                    detectTapGestures(onTap = { controller.setPtt(!controller.isTransmitting) })
-                } else {
-                    detectTapGestures(onPress = {
-                        controller.setPtt(true)
-                        tryAwaitRelease()
-                        controller.setPtt(false)
-                    })
-                }
+                detectTapGestures(onTap = { controller.setPtt(!controller.isTransmitting) })
             },
         contentAlignment = Alignment.Center,
     ) {
