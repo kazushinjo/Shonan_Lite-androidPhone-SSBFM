@@ -318,6 +318,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         rssiMeasurements = emptyList()
         rssiGainChangedAtMs = 0L
 
+        FileLogger.log("RSSI", "start range=$startHz..$endHz step=$stepHz onDevice=${settings.useOnDeviceGRDVBS2Rx} repeat=${settings.rssiRepeatScan}")
         rssiJob = viewModelScope.launch {
             // SSB/FMも同じPlutoのRX LOを使うため、先に止めてPlutoの設定をDATV側へ戻しておく。
             ssbFm.stopAndWait()
@@ -421,20 +422,27 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                     delay(RSSI_STEP_INTERVAL_MS)
                 }
             } finally {
-                // キャンセル後も後片付け(Plutoを元の中心周波数へ戻す・クローズ)は必ず完了させる。
-                withContext(Dispatchers.IO + NonCancellable) {
-                    session?.let { if (it.isOpen) it.measure(centerHz) }
-                    session?.close()
-                }
-                commitSweep()
-                if (rssiTxStartedByScan) {
-                    rssiTxStartedByScan = false
-                    stopTX()
-                }
-                rssiIsScanning = false
-                rssiJob = null
-                if (rssiStatus.startsWith("検索中") || rssiStatus.startsWith("Searching")) {
-                    rssiStatus = settings.t("検索待機中", "Search idle")
+                // ★後片付けは全体をNonCancellableで包む。withContext(Dispatchers.IO + NonCancellable)だけだと、
+                // IO側の処理が終わって呼び出し元(キャンセル済み)へ戻る時点でwithContextがCancellationExceptionを
+                // 投げ(prompt cancellation guarantee)、以降のrssiIsScanning=false等が実行されず「検索停止」が
+                // 効かないまま「検索中」表示が残る不具合を実機で確認した。
+                withContext(NonCancellable) {
+                    // キャンセル後もPlutoを元の中心周波数へ戻してクローズする。
+                    withContext(Dispatchers.IO) {
+                        session?.let { if (it.isOpen) it.measure(centerHz) }
+                        session?.close()
+                    }
+                    commitSweep()
+                    if (rssiTxStartedByScan) {
+                        rssiTxStartedByScan = false
+                        stopTX()
+                    }
+                    rssiIsScanning = false
+                    rssiJob = null
+                    if (rssiStatus.startsWith("検索中") || rssiStatus.startsWith("Searching")) {
+                        rssiStatus = settings.t("検索待機中", "Search idle")
+                    }
+                    FileLogger.log("RSSI", "stopped")
                 }
             }
         }
@@ -442,6 +450,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
 
     /** 検索を即座に停止する(その時点までの周回の結果を確定する)。 */
     fun stopRssi() {
+        FileLogger.log("RSSI", "stop requested")
         rssiJob?.cancel()
     }
 
