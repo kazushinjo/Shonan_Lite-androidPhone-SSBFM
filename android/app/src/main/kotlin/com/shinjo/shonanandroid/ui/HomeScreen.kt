@@ -50,9 +50,9 @@ private data class HomeTab(val titleJA: String, val titleEN: String, val route: 
 
 /** タブ形式のホーム画面に表示する機能一覧(RSSI測定/機器試験はAndroid電話版では非搭載)。 */
 private val homeTabs = listOf(
+    HomeTab("SSB/FM", "SSB/FM", "ssbfm"),
     HomeTab("送信", "Transmit", "tx"),
     HomeTab("受信", "Receive", "rx"),
-    HomeTab("SSB/FM", "SSB/FM", "ssbfm"),
     HomeTab("周波数", "Frequency", "frequency"),
     HomeTab("設定２", "Config 2", "gainpower"),
     HomeTab("設定３", "Config 3", "modcod"),
@@ -88,7 +88,7 @@ fun HomeScreen(viewModel: AppViewModel) {
     val settings = viewModel.settings
     val scope = rememberCoroutineScope()
     var showQuitConfirmation by remember { mutableStateOf(false) }
-    var selectedRoute by remember { mutableStateOf("tx") }
+    var selectedRoute by remember { mutableStateOf("ssbfm") }
     // ★受信タブが全画面表示になっている間は、この上部バー・TabRowも含めて隠す
     // (利用者の要望: 「タブの表示が消えても問題ない」)。他タブへ切り替えたら解除する。
     var rxFullscreen by remember { mutableStateOf(false) }

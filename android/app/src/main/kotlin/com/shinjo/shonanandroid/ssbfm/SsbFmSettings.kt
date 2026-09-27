@@ -42,8 +42,8 @@ data class SsbFmSettings(
 ) {
     companion object {
         const val SQUELCH_OFF = -200f
-        /** 周波数表示の最下位桁(100Hz)。これより細かいステップは使わない。 */
-        const val MIN_STEP_HZ = 100L
+        /** 周波数表示の最下位桁(1kHz)。これより細かいステップは使わない。 */
+        const val MIN_STEP_HZ = 1_000L
         const val MIN_FREQUENCY_HZ = 70_000_000L
         const val MAX_FREQUENCY_HZ = 6_000_000_000L
     }

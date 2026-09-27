@@ -172,8 +172,8 @@ class SsbFmController(
     }
 
     fun setFrequency(hz: Long) {
-        // 表示の最小桁(100Hz)に揃える
-        val clamped = ((hz + 50) / 100 * 100).coerceIn(SsbFmSettings.MIN_FREQUENCY_HZ, SsbFmSettings.MAX_FREQUENCY_HZ)
+        // 表示の最小桁(1kHz)に揃える
+        val clamped = ((hz + 500) / 1000 * 1000).coerceIn(SsbFmSettings.MIN_FREQUENCY_HZ, SsbFmSettings.MAX_FREQUENCY_HZ)
         if (clamped == settings.frequencyHz) return
         update { it.copy(frequencyHz = clamped) }
         frequencyRequests.value = clamped

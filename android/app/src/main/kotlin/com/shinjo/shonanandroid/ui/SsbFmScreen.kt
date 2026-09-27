@@ -244,7 +244,7 @@ fun SsbFmScreen(viewModel: AppViewModel) {
 }
 
 /**
- * 周波数表示(MHz単位の8桁、例: 1295.100.0。最下位は100Hz)。各桁をタップするとその桁を
+ * 周波数表示(MHz単位の7桁、例: 1295.100。最下位は1kHz)。各桁をタップするとその桁を
  * 同調ステップにし、長押しで直接入力する。
  */
 @OptIn(ExperimentalFoundationApi::class)
@@ -256,9 +256,9 @@ private fun FrequencyDisplay(
     onLongPress: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    // 10^9〜10^2 Hzの8桁
-    val digits = (frequencyHz / 100).toString().padStart(8, '0')
-    val firstSignificant = digits.indexOfFirst { it != '0' }.let { if (it < 0) 7 else it }
+    // 10^9〜10^3 Hzの7桁
+    val digits = (frequencyHz / 1000).toString().padStart(7, '0')
+    val firstSignificant = digits.indexOfFirst { it != '0' }.let { if (it < 0) 6 else it }
     Row(modifier, verticalAlignment = Alignment.Bottom) {
         digits.forEachIndexed { index, ch ->
             val power = 9 - index
@@ -279,7 +279,7 @@ private fun FrequencyDisplay(
                             else Modifier,
                         ),
                 )
-                if (power == 6 || power == 3) {
+                if (power == 6) {
                     Text(".", color = SsbFreqColor, fontSize = 30.sp, fontFamily = FontFamily.Monospace)
                 }
             }
@@ -333,7 +333,7 @@ private fun Modifier.tuningGestures(c: SsbFmController): Modifier = this
         detectTapGestures { pos ->
             val s = c.settings
             val offset = (pos.x / size.width - 0.5f) * SsbFmNative.SPECTRUM_SPAN_HZ
-            val grid = if (s.mode == SsbFmMode.FM) 5_000L else 100L
+            val grid = if (s.mode == SsbFmMode.FM) 5_000L else 1_000L
             c.setFrequency(((s.frequencyHz + offset) / grid).roundToLong() * grid)
         }
     }
@@ -342,7 +342,7 @@ private fun Modifier.tuningGestures(c: SsbFmController): Modifier = this
         detectHorizontalDragGestures(onDragStart = { pending = 0f }) { change, dragAmount ->
             change.consume()
             val s = c.settings
-            val grid = if (s.mode == SsbFmMode.FM) 1_000L else 100L
+            val grid = 1_000L
             pending -= dragAmount * SsbFmNative.SPECTRUM_SPAN_HZ / size.width
             val steps = (pending / grid).toLong()
             if (steps != 0L) {
@@ -519,7 +519,7 @@ private fun FrequencyEntryDialog(
     onDismiss: () -> Unit,
     onConfirm: (Long) -> Unit,
 ) {
-    var text by remember { mutableStateOf("%.4f".format(initialHz / 1e6)) }
+    var text by remember { mutableStateOf("%.3f".format(initialHz / 1e6)) }
     val parsed = text.trim().toDoubleOrNull()?.let { (it * 1e6).roundToLong() }
     val valid = parsed != null && parsed in SsbFmSettings.MIN_FREQUENCY_HZ..SsbFmSettings.MAX_FREQUENCY_HZ
     AlertDialog(
