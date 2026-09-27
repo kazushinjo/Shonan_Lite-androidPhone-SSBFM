@@ -150,9 +150,6 @@ fun TxScreen(viewModel: AppViewModel, onNavigate: (String) -> Unit) {
                         onNavigate("rx")
                     }
                 }
-                SecondaryButton(settings.t("ホームへ戻る", "Home"), Modifier.weight(1f)) {
-                    onNavigate(HOME_ROUTE)
-                }
             }
         }
 

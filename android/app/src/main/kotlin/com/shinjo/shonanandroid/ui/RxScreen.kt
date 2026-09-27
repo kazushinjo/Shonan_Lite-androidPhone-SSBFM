@@ -288,15 +288,11 @@ fun RxScreen(
                             fontWeight = FontWeight.Bold,
                         )
                     }
-                    Spacer(modifier = Modifier.width(8.dp))
                     if (settings.useOnDeviceGRDVBS2Rx) {
+                        Spacer(modifier = Modifier.width(8.dp))
                         SecondaryButton(settings.t("送信画面へ", "Transmit Screen")) {
                             onNavigate("tx")
                         }
-                        Spacer(modifier = Modifier.width(8.dp))
-                    }
-                    SecondaryButton(settings.t("ホームへ戻る", "Home")) {
-                        onNavigate(HOME_ROUTE)
                     }
                 }
             }

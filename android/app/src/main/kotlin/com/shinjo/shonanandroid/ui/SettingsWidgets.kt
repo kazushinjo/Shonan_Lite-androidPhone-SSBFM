@@ -2,43 +2,33 @@ package com.shinjo.shonanandroid.ui
 
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 
 /**
- * 設定サブ画面で共通利用する骨格。TopAppBarの左側は矢印アイコン単体ではなく、
- * pi5版の「ホームへ戻る」ボタンに相当する矢印+ラベルのボタンにする(戻り先は常に
- * ホーム画面。呼び出し側の[onBack]がその遷移処理を担う)。本文側に別途ホームボタンを
- * 重複して置かないこと。
+ * 設定サブ画面で共通利用する骨格(上部にタイトルだけのTopAppBar)。電話版は独立したホーム画面が無く
+ * 上部のタブで画面を切り替えるため、「ホームへ戻る」ボタンは置かない。
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsSubScreen(
     title: String,
-    onBack: () -> Unit,
-    homeLabel: String = "Home",
     scrollState: ScrollState = rememberScrollState(),
     scrollEnabled: Boolean = true,
     // ★ヘルプ画面のように本文がテキスト中心でスクロール領域自体を広く取りたい画面向けに、
@@ -50,7 +40,6 @@ fun SettingsSubScreen(
         topBar = {
             TopAppBar(
                 title = { Text(title) },
-                navigationIcon = { HomeBackAction(onBack, homeLabel) },
             )
         },
     ) { padding ->
@@ -68,20 +57,6 @@ fun SettingsSubScreen(
             modifier = if (scrollEnabled) baseModifier.verticalScroll(scrollState) else baseModifier,
             content = content,
         )
-    }
-}
-
-/**
- * 矢印+「ホームへ戻る」ラベルの戻るボタン。SettingsSubScreen以外の独自Scaffold
- * (SettingsScreen/ManualScreen等)のnavigationIconからも共用する。本文側に同機能の
- * ボタンを別途置くと二重実装になるため置かないこと。
- */
-@Composable
-fun HomeBackAction(onClick: () -> Unit, label: String) {
-    TextButton(onClick = onClick) {
-        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null, modifier = Modifier.width(18.dp))
-        Spacer(modifier = Modifier.width(4.dp))
-        Text(label)
     }
 }
 

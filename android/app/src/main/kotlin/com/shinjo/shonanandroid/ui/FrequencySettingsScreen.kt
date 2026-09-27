@@ -80,8 +80,6 @@ fun FrequencySettingsScreen(viewModel: AppViewModel, onNavigate: (String) -> Uni
 
     SettingsSubScreen(
         title = settings.t("周波数", "Frequency"),
-        onBack = { onNavigate(HOME_ROUTE) },
-        homeLabel = settings.t("ホームへ戻る", "Home"),
         scrollEnabled = false,
     ) {
         Row(
