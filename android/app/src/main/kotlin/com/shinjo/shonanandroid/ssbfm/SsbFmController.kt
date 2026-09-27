@@ -135,8 +135,8 @@ class SsbFmController(
                     val host = s.activePttControllerHost
                     if (host.isNotEmpty() && !withContext(Dispatchers.IO) { Esp32PttClient.isReachable(host) }) {
                         error = tr(
-                            "PA/PTTコントローラ(ESP32 $host)に接続できません。このままではPTTを押しても送信しません",
-                            "Cannot reach the PA/PTT controller (ESP32 $host). PTT will not transmit until it responds.",
+                            "PA/PTTコントローラ(ESP32 $host)に接続できません。このまま送信するとPA/PTTは切り替わりません",
+                            "Cannot reach the PA/PTT controller (ESP32 $host). If you transmit now, the PA/PTT will not be switched.",
                         )
                     }
                 }
@@ -178,7 +178,7 @@ class SsbFmController(
      * PTT。PA/PTTコントローラ(ESP32)が設定されていれば、送信開始は
      * 「ESP32へ通知→リレー切替を待つ→PlutoのRF開始」、終了は「RF停止→ESP32へ通知」の順にする
      * (LNAに送信電力を入れない・リレー接点を通電中に切り替えないため)。ESP32が設定されているのに
-     * 応答しない場合は、LNAが保護されないまま送信することになるので送信しない。
+     * 応答しない場合は、PA/PTTが切り替わっていないことを警告したうえで送信する(利用者の指定)。
      * 押す・離すが続いても順序が崩れないよう、一連の処理はネイティブ呼び出しと同じ直列ディスパッチャーで行う。
      */
     fun setPtt(on: Boolean) {
@@ -187,32 +187,40 @@ class SsbFmController(
         isTransmitting = on
         val host = settings.activePttControllerHost
         scope.launch {
-            val message = withContext(nativeDispatcher) {
-                if (on) pttOnSequence(n, host) else pttOffSequence(n, host)
+            if (on) {
+                val result = withContext(nativeDispatcher) { pttOnSequence(n, host) }
+                result.warning?.let { error = it }
+                if (!result.transmitting) isTransmitting = false
+            } else {
+                val message = withContext(nativeDispatcher) { pttOffSequence(n, host) }
+                if (message != null) error = message
             }
-            // ""はネイティブ側が既にエラーを通知済みの失敗
-            if (!message.isNullOrEmpty()) error = message
-            if (on && message != null) isTransmitting = false
         }
     }
 
-    // 戻り値はエラーメッセージ(成功ならnull)。
-    private fun pttOnSequence(n: SsbFmNative, host: String): String? {
+    /** 送信開始の結果。[warning]は画面に出す警告(無ければnull)。 */
+    private data class PttOnResult(val transmitting: Boolean, val warning: String?)
+
+    private fun pttOnSequence(n: SsbFmNative, host: String): PttOnResult {
+        var warning: String? = null
+        var notifiedOn = false
         if (host.isNotEmpty()) {
             val notified = Esp32PttClient.notifyTx(host, on = true)
             FileLogger.log("SSBFM", "ESP32 tx=on host=$host result=$notified")
-            if (notified.isFailure) {
-                return tr(
-                    "PA/PTTコントローラ(ESP32 $host)が応答しないため送信しません",
-                    "Not transmitting: the PA/PTT controller (ESP32 $host) did not respond",
+            if (notified.isSuccess) {
+                notifiedOn = true
+                Thread.sleep(PTT_LEAD_MS)
+            } else {
+                warning = tr(
+                    "PA/PTTコントローラ(ESP32 $host)が応答しません。PA/PTTは切り替わらないまま送信しています",
+                    "The PA/PTT controller (ESP32 $host) did not respond. Transmitting without switching the PA/PTT.",
                 )
             }
-            Thread.sleep(PTT_LEAD_MS)
         }
-        if (n.setPtt(true)) return null
+        if (n.setPtt(true)) return PttOnResult(transmitting = true, warning = warning)
         // RFを出せなかったらESP32側も受信状態へ戻す(エラー表示はネイティブ側から届く)
-        if (host.isNotEmpty()) Esp32PttClient.notifyTx(host, on = false)
-        return ""
+        if (notifiedOn) Esp32PttClient.notifyTx(host, on = false)
+        return PttOnResult(transmitting = false, warning = null)
     }
 
     private fun pttOffSequence(n: SsbFmNative, host: String): String? {

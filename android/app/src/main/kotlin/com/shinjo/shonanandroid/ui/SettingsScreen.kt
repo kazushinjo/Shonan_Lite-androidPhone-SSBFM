@@ -133,12 +133,12 @@ fun SettingsScreen(viewModel: AppViewModel, onNavigate: (String) -> Unit) {
                 settings.t(
                     "W5500_PA_PTT_ControlのESP32+W5500ボードのIPアドレス。SSB/FMタブのPTTに連動して送信開始/終了を"
                         + "通知します(GET /tx?state=on|off)。送信開始はESP32へ通知して150ms待ってからRFを出し、"
-                        + "送信終了はRFを止めてから通知します。「使う」にしているのにESP32が応答しない場合は送信しません。"
+                        + "送信終了はRFを止めてから通知します。「使う」にしているのにESP32が応答しない場合は、警告を表示してPA/PTTを切り替えないまま送信します。"
                         + "「使う」をOFFにすると、ESP32には通知せずに送信します。",
                     "IP address of the ESP32+W5500 board (W5500_PA_PTT_Control). The SSB/FM tab's PTT notifies it of "
                         + "TX start/stop (GET /tx?state=on|off): on start it notifies, waits 150 ms, then sends RF; on stop "
                         + "it stops RF first, then notifies. If it is enabled but the ESP32 does not respond, the app "
-                        + "does not transmit. When turned off, the app transmits without notifying the ESP32.",
+                        + "shows a warning and transmits without switching the PA/PTT. When turned off, the app transmits without notifying the ESP32.",
                 ),
                 style = MaterialTheme.typography.bodySmall,
             )

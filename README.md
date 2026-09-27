@@ -81,7 +81,7 @@ Pluto再起動、日本語/英語表示に対応します。
   - PTT: 押している間だけ送信します。「PTTを押すたびに送受信を切り替える」をチェックすると押すたびに切り替えます。
   - PA/PTTコントローラ連携: 「設定１」タブで「PA/PTTコントローラを使う」がONのときは、送信開始時にESP32+W5500
     (W5500_PA_PTT_Control)へ`GET /tx?state=on`を送って150ms待ってから電波を出し、送信終了時は電波を止めてから
-    `GET /tx?state=off`を送ります。ONなのにESP32が応答しない場合は送信しません。
+    `GET /tx?state=off`を送ります。ONなのにESP32が応答しない場合は、警告を表示してPA/PTTを切り替えないまま送信します。
 - **送信**: 「設定４」の映像ソースのプレビューを表示し、「送信開始」で現在の周波数・シンボルレート・変調方式・誤り訂正・出力減衰量で
   送信します。「設定１」ボタンで設定１タブへ、オンデバイス復調が有効なら「受信画面へ」ボタンで受信タブへ移動できます。
 - **受信**: 「受信開始」で受信を始め、ロックすると映像を全画面表示にします(上部のタブも隠れます)。画面をタップすると5秒間だけ
@@ -171,7 +171,7 @@ bridge), reboots Pluto at startup, and supports Japanese and English.
   - PTT: transmits while held. Check "Latching PTT" to toggle TX/RX with each press.
   - PA/PTT controller link: when "Use the PA/PTT controller" is on (Config 1 tab), at TX start the app sends
     `GET /tx?state=on` to the ESP32+W5500 (W5500_PA_PTT_Control), waits 150 ms, and then transmits; at TX end it stops
-    transmitting first and then sends `GET /tx?state=off`. If it is on but the ESP32 does not respond, the app does not transmit.
+    transmitting first and then sends `GET /tx?state=off`. If it is on but the ESP32 does not respond, the app shows a warning and transmits without switching the PA/PTT.
 - **Transmit**: Shows a preview of the video source set on Config 4; Start transmits with the current frequency, symbol
   rate, modulation, FEC, and attenuation. The "Config 1" button opens the Config 1 tab, and when on-device demodulation is
   enabled, the "Receive Screen" button opens the Receive tab.

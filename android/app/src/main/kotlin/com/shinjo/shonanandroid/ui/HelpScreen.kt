@@ -121,7 +121,7 @@ private val helpSections = listOf(
             + "・音量・スケルチ(FMのみ有効。USBではグレー表示)・マイク・RF利得(AGCのチェックで自動)・送信減衰(0〜89dB)。\n"
             + "・PTT: 押している間だけ送信します。「PTTを押すたびに送受信を切り替える」をチェックすると押すたびに切り替えます。\n"
             + "・「設定１」タブで「PA/PTTコントローラを使う」がONのときは、送信開始時にESP32+W5500へ通知して150ms待ってから"
-            + "電波を出し、送信終了時は電波を止めてから通知します。ESP32が応答しない場合は送信しません。",
+            + "電波を出し、送信終了時は電波を止めてから通知します。ESP32が応答しない場合は、警告を表示してPA/PTTを切り替えないまま送信します。",
         "Transmits and receives USB and FM with Pluto (a port of Langstone-V2). It cannot run at the same time as "
             + "DATV TX/RX or RSSI measurement; tapping Start stops them first and then starts receiving. On start, the "
             + "app stops Pluto's DATV transmitter process (pluto_dvb) over SSH, and Stop restores Pluto's settings "
@@ -138,7 +138,7 @@ private val helpSections = listOf(
             + "- PTT: transmits while held. Check \"Latching PTT\" to toggle TX/RX with each press.\n"
             + "- When \"Use the PA/PTT controller\" is on (Config 1 tab), the app notifies the ESP32+W5500 at TX start, "
             + "waits 150 ms, then transmits; at TX end it stops transmitting first and then notifies. If the ESP32 "
-            + "does not respond, the app does not transmit.",
+            + "does not respond, the app shows a warning and transmits without switching the PA/PTT.",
     ),
     HelpSection(
         "送信", "Transmit",
