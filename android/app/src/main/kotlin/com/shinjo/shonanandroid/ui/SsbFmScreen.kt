@@ -185,6 +185,7 @@ fun SsbFmScreen(viewModel: AppViewModel) {
                     if (s.squelchDb <= SsbFmSettings.SQUELCH_OFF) METER_MIN_DB else s.squelchDb,
                     METER_MIN_DB..METER_MAX_DB,
                     if (s.squelchDb <= METER_MIN_DB) "OFF" else "${s.squelchDb.toInt()}",
+                    enabled = s.mode == SsbFmMode.FM, // スケルチはFMのみ
                 ) { v -> c.setSquelch(if (v <= METER_MIN_DB + 0.5f) SsbFmSettings.SQUELCH_OFF else v) }
                 LabeledSlider(t("マイク", "MIC"), s.micGain, 0f..4f, "%.1f".format(s.micGain)) { c.setMicGain(it) }
                 Row(verticalAlignment = Alignment.CenterVertically) {
@@ -313,7 +314,7 @@ private fun SignalMeter(c: SsbFmController, t: (String, String) -> String, modif
                 else -> Color(0xFF2E5E30)
             }
             drawRect(barColor, size = Size(size.width * fraction, size.height))
-            if (!transmitting && s.squelchDb > SsbFmSettings.SQUELCH_OFF) {
+            if (!transmitting && s.mode == SsbFmMode.FM && s.squelchDb > SsbFmSettings.SQUELCH_OFF) {
                 val x = size.width * ((s.squelchDb - METER_MIN_DB) / (METER_MAX_DB - METER_MIN_DB)).coerceIn(0f, 1f)
                 drawLine(Color(0xFFFFC107), Offset(x, 0f), Offset(x, size.height), strokeWidth = 3f)
             }
@@ -499,16 +500,22 @@ private fun LabeledSlider(
     onChange: (Float) -> Unit,
 ) {
     Row(Modifier.height(32.dp), verticalAlignment = Alignment.CenterVertically) {
-        Text(label, color = Color.White, fontSize = 10.sp, maxLines = 1, modifier = Modifier.width(58.dp))
+        Text(label, color = if (enabled) Color.White else Color.Gray, fontSize = 10.sp, maxLines = 1, modifier = Modifier.width(58.dp))
         Slider(
             value = value.coerceIn(range.start, range.endInclusive),
             onValueChange = onChange,
             valueRange = range,
             enabled = enabled,
             modifier = Modifier.weight(1f),
-            colors = SliderDefaults.colors(thumbColor = SsbAccent, activeTrackColor = SsbAccent),
+            colors = SliderDefaults.colors(
+                thumbColor = SsbAccent,
+                activeTrackColor = SsbAccent,
+                disabledThumbColor = Color(0xFF5F6B70),
+                disabledActiveTrackColor = Color(0xFF3E474B),
+                disabledInactiveTrackColor = Color(0xFF2A3134),
+            ),
         )
-        Text(valueText, color = Color.White, fontSize = 10.sp, modifier = Modifier.width(44.dp).padding(start = 4.dp))
+        Text(valueText, color = if (enabled) Color.White else Color.Gray, fontSize = 10.sp, modifier = Modifier.width(44.dp).padding(start = 4.dp))
     }
 }
 

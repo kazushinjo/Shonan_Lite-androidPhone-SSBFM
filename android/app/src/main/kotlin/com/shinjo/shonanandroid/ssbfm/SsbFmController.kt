@@ -123,7 +123,7 @@ class SsbFmController(
                 val ok = withContext(nativeDispatcher) {
                     n.setAfGain(s.afGain)
                     n.setMicGain(s.micGain)
-                    n.setSquelch(s.squelchDb)
+                    n.setSquelch(effectiveSquelch(s))
                     n.start(
                         "ip:$plutoIp", s.frequencyHz, s.mode, s.rxAgc, s.rxGainDb.toDouble(), s.txAttenuationDb.toDouble(),
                     )
@@ -181,8 +181,16 @@ class SsbFmController(
 
     fun setMode(mode: SsbFmMode) {
         update { it.copy(mode = mode) }
-        withNative { it.setMode(mode) }
+        val sql = effectiveSquelch(settings)
+        withNative {
+            it.setMode(mode)
+            it.setSquelch(sql)
+        }
     }
+
+    /** スケルチはFMだけで使う(USBでは常に開放。設定値はFMへ戻したときのために残す)。 */
+    private fun effectiveSquelch(s: SsbFmSettings): Float =
+        if (s.mode == SsbFmMode.FM) s.squelchDb else SsbFmSettings.SQUELCH_OFF
 
     fun setStep(stepHz: Long) = update { it.copy(stepHz = stepHz.coerceAtLeast(SsbFmSettings.MIN_STEP_HZ)) }
 
@@ -205,7 +213,8 @@ class SsbFmController(
 
     fun setSquelch(db: Float) {
         update { it.copy(squelchDb = db) }
-        withNative { it.setSquelch(db) }
+        val sql = effectiveSquelch(settings)
+        withNative { it.setSquelch(sql) }
     }
 
     fun setMicGain(value: Float) {
