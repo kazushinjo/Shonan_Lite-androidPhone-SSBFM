@@ -27,7 +27,7 @@ the Pluto version of [Langstone-V2](https://github.com/g4eml/Langstone-V2) by G4
   同じ手順でFIRを読み込む。停止時はサンプルレート・LO・利得を開始前の値へ戻す。DATVの送受信とは排他
   (どちらかを始めると他方は止まる)。DATV送信の開始時には従来どおり`udpts.sh`が再起動される。
 - **PA/PTTコントローラ連携**: 「設定」タブで「PA/PTTコントローラを使う」をONにし、ESP32+W5500(W5500_PA_PTT_Control)の
-  IPアドレス(既定192.168.0.100)を入れておくと(既定はOFF)、PTTに連動して`GET /tx?state=on|off`を送る。送信開始はESP32へ通知→150ms待つ→
+  IPアドレス(既定192.168.0.100)を入れておくと(既定はON)、PTTに連動して`GET /tx?state=on|off`を送る。送信開始はESP32へ通知→150ms待つ→
   PlutoのRF開始、送信終了はRF停止→ESP32へ通知の順。ONなのにESP32が応答しない場合は送信しない。
 - **実装**: `android/app/src/main/cpp/ssbfm_dsp.h`(DSP)、`ssbfm_bridge.cpp`(Pluto制御・AAudio・JNI)、
   `android/app/src/main/kotlin/.../ssbfm/`、`ui/SsbFmScreen.kt`。

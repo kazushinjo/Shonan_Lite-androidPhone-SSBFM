@@ -40,7 +40,7 @@ data class SsbFmSettings(
     /** trueならPTTボタンが押す度に送信/受信を切り替える。 */
     val pttLatch: Boolean = false,
     /** PA/PTTコントローラ(ESP32+W5500)とPTTを連携するか。 */
-    val pttControllerEnabled: Boolean = false,
+    val pttControllerEnabled: Boolean = true,
     /** PA/PTTコントローラ(ESP32+W5500)のIPアドレス。 */
     val pttControllerHost: String = "192.168.0.100",
 ) {
