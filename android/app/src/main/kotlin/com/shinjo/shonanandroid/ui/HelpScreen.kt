@@ -29,8 +29,8 @@ private data class HelpStep(val ja: String, val en: String)
 // ★送信時に設定すべき項目の推奨順序(タブの並び順とは異なり、実際に必要な操作順)。
 private val txSteps = listOf(
     HelpStep(
-        "「映像ソース」タブで送信する映像(背面カメラ・前面カメラ・写真・カラーバー)を選ぶ",
-        "On the Video Source tab, choose what to transmit (back camera, front camera, a photo, or a color bar).",
+        "「設定４」タブの「映像ソース」で送信する映像(背面カメラ・前面カメラ・写真・カラーバー)を選ぶ",
+        "On the Config 4 tab (Video Source), choose what to transmit (back camera, front camera, a photo, or a color bar).",
     ),
     HelpStep(
         "「周波数」タブでバンドと周波数を設定する(相手の受信周波数と一致させる)",
@@ -41,9 +41,9 @@ private val txSteps = listOf(
         "On the Config 3 tab, set the symbol rate, FEC (1/2, 3/5, or 8/9), and modulation (QPSK or 8PSK); they must match the receiver.",
     ),
     HelpStep(
-        "「配信先」タブでPluto TxのIPアドレスを確認する(初回のみ。実機宛て送信時は送信先ポートの"
+        "「設定４」タブの「配信先」でPluto TxのIPアドレスを確認する(初回のみ。実機宛て送信時は送信先ポートの"
             + "指定に関わらずPluto側のUDP-TS受信ポート(8282)へ固定で送られます)",
-        "On the Destination tab, confirm Pluto Tx's IP address (first time only). When targeting real "
+        "On the Config 4 tab (Stream Output), confirm Pluto Tx's IP address (first time only). When targeting real "
             + "Pluto hardware, data always goes to its fixed UDP-TS port (8282) regardless of the port field.",
     ),
     HelpStep(
@@ -63,11 +63,11 @@ private val rxSteps = listOf(
         "Set the Frequency and Config 3 tabs to match the transmitting side.",
     ),
     HelpStep(
-        "「設定」タブで受信方式を選ぶ: オフ(既定)のままなら外部復調機器からのUDP-TSを「配信先」の"
+        "「設定」タブで受信方式を選ぶ: オフ(既定)のままなら外部復調機器からのUDP-TSを「設定４」タブ「配信先」の"
             + "TSポート/ステータスポートで待ち受ける。オンにするとPlutoのRF信号をAndroid自身が復調する"
             + "(送信と同時に行う場合はPluto保護のため必ずアッテネータを接続すること)",
         "On the Settings tab, choose the receive path: leave On-device demodulation off (default) to "
-            + "listen for UDP-TS from an external demodulator on the TS/Status ports set under Destination; "
+            + "listen for UDP-TS from an external demodulator on the TS/Status ports set on the Config 4 tab (Stream Output); "
             + "turn it on to have Android demodulate Pluto's RF directly (an attenuator is required if "
             + "transmitting at the same time, to protect the Pluto).",
     ),
@@ -102,11 +102,11 @@ private val helpSections = listOf(
     ),
     HelpSection(
         "送信", "Transmit",
-        "「映像ソース」タブで選んだ映像のプレビューを表示します。「送信開始」を押すと、現在の"
+        "「設定４」タブの「映像ソース」で選んだ映像のプレビューを表示します。「送信開始」を押すと、現在の"
             + "周波数・シンボルレート・変調方式・誤り訂正・出力減衰量の設定でPlutoから送信します"
             + "(映像ソースの選択自体はこの画面では行いません)。オンデバイス復調が有効な場合は"
             + "「受信画面へ」ボタンで受信タブに移動できます。",
-        "Shows a preview of the source selected on the Video Source tab. Tap Start to transmit via "
+        "Shows a preview of the source selected on the Config 4 tab (Video Source). Tap Start to transmit via "
             + "Pluto using the current frequency, symbol rate, modulation, FEC, and attenuation settings "
             + "(the source itself is not selected here). When on-device demodulation is enabled, a "
             + "\"Receive Screen\" button lets you jump to the Receive tab.",
@@ -150,7 +150,7 @@ private val helpSections = listOf(
             + "estimated bandwidth and bit rate. Transmit and Receive share the same setting.",
     ),
     HelpSection(
-        "映像ソース", "Video Source",
+        "設定４(映像ソース)", "Config 4 (Video Source)",
         "背面カメラ(既定)・前面カメラ・写真(写真フォルダーから選択)・テストパターン(カラーバー)の"
             + "いずれかを選びます。ここで選んだ映像が「送信」タブでのプレビューと送信対象になります。"
             + "「写真」を選ぶと、写真に焼き込む「コールサイン」「備考」を入力できます。"
@@ -163,7 +163,7 @@ private val helpSections = listOf(
             + "device's microphone audio as well. The transmitted video is HD (1280x720) at 30 fps.",
     ),
     HelpSection(
-        "配信先", "Destination",
+        "設定４(配信先)", "Config 4 (Stream Output)",
         "「送信先(Pluto Tx)」でPlutoのIPアドレスを設定します。ポート欄は確認用の表示で、"
             + "送信は常にPluto側の固定ポート8282へ行います。「自動検出」を押すと、まず端末が接続中の"
             + "ネットワーク(同じサブネット)からPlutoを探し、見つからなければESP32ブリッジに問い合わせます。"

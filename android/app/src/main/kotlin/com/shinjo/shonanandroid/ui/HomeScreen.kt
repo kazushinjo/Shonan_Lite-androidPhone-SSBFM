@@ -60,8 +60,7 @@ private val homeTabs = listOf(
     HomeTab("周波数", "Frequency", "frequency"),
     HomeTab("設定２", "Config 2", "gainpower"),
     HomeTab("設定３", "Config 3", "modcod"),
-    HomeTab("映像ソース", "Video Source", "videosource"),
-    HomeTab("配信先", "Stream Output", "streamoutput"),
+    HomeTab("設定４", "Config 4", "sourceoutput"),
     HomeTab("設定", "Config", "settings"),
     HomeTab("ヘルプ", "Help", "help"),
 )
@@ -213,8 +212,7 @@ fun HomeScreen(viewModel: AppViewModel) {
                     "frequency" -> FrequencySettingsScreen(viewModel, onNavigate)
                     "gainpower" -> GainPowerSettingsScreen(viewModel)
                     "modcod" -> ModCodSettingsScreen(viewModel)
-                    "videosource" -> VideoSourceSettingsScreen(viewModel, onNavigate)
-                    "streamoutput" -> StreamOutputSettingsScreen(viewModel, onNavigate)
+                    "sourceoutput" -> SourceOutputSettingsScreen(viewModel)
                     "settings" -> SettingsScreen(viewModel, onNavigate)
                     "help" -> HelpScreen(viewModel, onNavigate)
                 }
