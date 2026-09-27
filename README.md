@@ -10,9 +10,9 @@ the Pluto version of [Langstone-V2](https://github.com/g4eml/Langstone-V2) by G4
 
 ## SSB/FMタブ
 
-- **モード**: USB・LSB・FM(±5kHz偏移、75µsプリ/ディエンファシス)。
+- **モード**: USB・FM(±5kHz偏移、75µsプリ/ディエンファシス)。
 - **受信**: Plutoを528kspsで受け、周波数変換+1/11間引きで48kHzにし、複素帯域フィルタ(USB +300〜+3000Hz /
-  LSB -3000〜-300Hz / FM ±7.5kHz)→復調(SSB: 実部+AGC、FM: 直交復調)→音声フィルタ→スピーカー。
+  FM ±7.5kHz)→復調(SSB: 実部+AGC、FM: 直交復調)→音声フィルタ→スピーカー。
   受信LOは100kHz単位に置き、希望周波数を+50〜+150kHz側で受ける(DC付近を避けるLangstoneと同じ方式)。
 - **送信**: マイク48kHz→SSB: 複素帯域フィルタで片側波帯を生成 / FM: プリエンファシス+周波数変調→11倍補間→Pluto。
   PTTは押している間だけ送信(「押すたびに切り替え」も選べる)。送信中は受信LO、受信中は送信LOを止める。

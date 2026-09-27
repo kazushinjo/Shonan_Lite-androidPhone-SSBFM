@@ -2,10 +2,9 @@ package com.shinjo.shonanandroid.ssbfm
 
 import android.content.Context
 
-/** 変調方式。[nativeId]は`ssbfm_bridge.cpp`のMode列挙と一致させる。 */
+/** 変調方式。[nativeId]は`ssbfm_dsp.h`のMode列挙と一致させる(LSBは使わないので置かない)。 */
 enum class SsbFmMode(val nativeId: Int, val label: String) {
     USB(0, "USB"),
-    LSB(1, "LSB"),
     FM(2, "FM"),
 }
 
@@ -41,7 +40,11 @@ object SsbFmSettingsStore {
         val d = SsbFmSettings()
         return SsbFmSettings(
             frequencyHz = p.getLong("frequencyHz", d.frequencyHz),
-            mode = runCatching { SsbFmMode.valueOf(p.getString("mode", d.mode.name)!!) }.getOrDefault(d.mode),
+            // 以前保存された"LSB"はUSBとして読み込む。
+            mode = when (val saved = p.getString("mode", d.mode.name)) {
+                "LSB" -> SsbFmMode.USB
+                else -> runCatching { SsbFmMode.valueOf(saved!!) }.getOrDefault(d.mode)
+            },
             stepHz = p.getLong("stepHz", d.stepHz),
             afGain = p.getFloat("afGain", d.afGain),
             squelchDb = p.getFloat("squelchDb", d.squelchDb),

@@ -356,7 +356,6 @@ private fun SpectrumView(c: SsbFmController, modifier: Modifier) {
         val hzToX = { hz: Float -> (hz / SsbFmNative.SPECTRUM_SPAN_HZ + 0.5f) * w }
         val (lo, hi) = when (s.mode) {
             SsbFmMode.USB -> 300f to 3000f
-            SsbFmMode.LSB -> -3000f to -300f
             SsbFmMode.FM -> -7500f to 7500f
         }
         drawRect(SsbAccent.copy(alpha = 0.18f), Offset(hzToX(lo), 0f), Size(hzToX(hi) - hzToX(lo), h))
