@@ -10,6 +10,7 @@ import androidx.lifecycle.viewModelScope
 import com.shinjo.shonanandroid.core.AppSettings
 import com.shinjo.shonanandroid.diagnostics.FileLogger
 import com.shinjo.shonanandroid.dvbs2.PlutoTuner
+import com.shinjo.shonanandroid.dvbs2.RssiNativeSession
 import com.shinjo.shonanandroid.rx.RxController
 import com.shinjo.shonanandroid.ssbfm.SsbFmController
 import com.shinjo.shonanandroid.tx.TxController
@@ -22,9 +23,31 @@ import java.io.IOException
 import java.net.InetSocketAddress
 import java.net.Socket
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+
+/** RSSI測定の1点分の結果。rssiDbはAD9361の`voltage0/rssi`(値が小さいほど強い)。 */
+data class RssiMeasurement(val frequencyHz: Long, val rssiDb: Double)
+
+/** RSSI測定でRSSI変動をピークと認めるしきい値(dB)。Shonan_Lite-winと同じ値。 */
+private const val RSSI_PEAK_THRESHOLD_DB = 3.0
+/** RSSI測定の1ステップの間隔(ms)。Shonan_Lite-winのSTEP_INTERVAL_MSと同じ。 */
+private const val RSSI_STEP_INTERVAL_MS = 150L
+/** RSSI測定がこの回数続けて失敗したら(接続し直しても回復しなければ)検索を中止する。 */
+private const val RSSI_MAX_CONSECUTIVE_FAILURES = 3
+/** RSSI画面でRXゲインを変更してからPlutoへ反映するまでの待ち(連打・長押しをまとめる)。 */
+private const val RSSI_GAIN_APPLY_DELAY_MS = 250L
+
+const val RX_GAIN_MIN_DB = 0
+const val RX_GAIN_MAX_DB = 73
+
+/** RSSI値の表示(Win版の`{rssi:g}`相当: 不要な末尾の0を付けない)。 */
+fun formatRssiValue(rssi: Double): String =
+    if (rssi == Math.floor(rssi)) rssi.toLong().toString() else rssi.toBigDecimal().stripTrailingZeros().toPlainString()
 
 /** libiio IIODの既定TCPポート。 */
 private const val IIOD_PORT = 30431
@@ -120,12 +143,17 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun startSsbFm() {
+        stopRssi()
         if (isTransmitting) stopTX()
         if (isReceiving) stopRX()
         ssbFm.start(settings.txDestinationIP)
     }
 
-    fun startTX() {
+    /**
+     * @param txSettings 送信に使う設定。省略時は現在の設定。RSSI測定の自動送信は
+     *   映像ソースだけ差し替えた複製を渡す(保存済みの設定は変えない)。
+     */
+    fun startTX(txSettings: AppSettings? = null) {
         if (isTransmitting || isPreparingTx) return
         if (isReceiving && !settings.useOnDeviceGRDVBS2Rx) {
             txError = "受信中は送信を開始できません。受信を停止してください。"
@@ -138,7 +166,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                 ssbFm.stopAndWait()
                 if (!preparePlutoTx()) return@launch
                 if (!tunePluto(isTx = true)) return@launch
-                txController.start(settings)
+                txController.start(txSettings ?: settings)
                 isTransmitting = true
             } finally {
                 isPreparingTx = false
@@ -230,4 +258,202 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         return true
     }
 
+
+    // --- RSSI測定 (Shonan_Lite-win `app/gui/screens/rssi.py` と同じ動作) ---
+    var rssiIsScanning by mutableStateOf(false)
+        private set
+    var rssiStatus by mutableStateOf("")
+        private set
+    /** 実行中の1周(開始〜終了周波数)の範囲。グラフの横軸に使う。 */
+    var rssiSweepStartHz by mutableStateOf(0L)
+        private set
+    var rssiSweepEndHz by mutableStateOf(0L)
+        private set
+    /** 実行中の1周で得た測定値(周回の先頭に戻るたびにクリアする)。 */
+    var rssiMeasurements by mutableStateOf<List<RssiMeasurement>>(emptyList())
+        private set
+    /** 確定した「最も強い周波数」。明確なピークが無かった周回では前回値を保持する(Win版と同じ)。 */
+    var rssiBestFrequencyHz by mutableStateOf<Long?>(null)
+        private set
+    var rssiBestRssiDb by mutableStateOf<Double?>(null)
+        private set
+    var rssiRestrictionMessage by mutableStateOf<String?>(null)
+        private set
+    private var rssiJob: Job? = null
+    /** オンデバイス復調ON時に検索開始と同時に送信を開始した場合true(検索停止時に送信も止める)。 */
+    private var rssiTxStartedByScan = false
+    /** RXゲインが変更された時刻(ms)。走査ループが250ms後にまとめてPlutoへ反映する。0=変更なし。 */
+    @Volatile private var rssiGainChangedAtMs = 0L
+
+    /**
+     * 開始〜終了周波数をステップごとに走査してRSSIを測定する -- Shonan_Lite-win
+     * (`app/gui/screens/rssi.py`)の移植。
+     *
+     * - AD9361の`voltage0/rssi`は値が小さいほど信号が強い指標なので、最小値の周波数を
+     *   「最も強い周波数」とする。1周の変動幅が[RSSI_PEAK_THRESHOLD_DB]未満なら前回の結果を保持する。
+     * - 検索方法「連続」は[AppSettings.rssiRepeatScan]がtrueの間、1周ごとに結果を確定して繰り返す。
+     *   「1回」は範囲の終わりで自動停止する。「検索停止」は即座に止め、その時点までの結果を確定する。
+     * - オンデバイス復調ON時は自局のRXを掃引するだけでは何も受からないため、検索開始と同時に
+     *   送信も開始し(送信中なら設定を揃えるため一旦止めて開始し直す)、3秒待ってから測定を始める。
+     *   検索停止時は、検索が開始した送信を止める。
+     * - RXゲイン(AGC/手動)はRXゲイン画面と同じ設定値を使い、検索中の変更は250ms後にPlutoへ反映して
+     *   その周回を最初からやり直す(異なるゲインの測定値が1周に混ざらないようにする)。
+     */
+    fun startRssi(startHz: Long, endHz: Long, stepHz: Long) {
+        if (rssiIsScanning) return
+        if (isReceiving) {
+            // ★Android版の受信(オンデバイス復調)はRXのLOを使い続けるため、走査で動かすと受信が壊れる。
+            rssiRestrictionMessage = settings.t(
+                "受信中はRSSI測定できません。受信を停止してから実行してください。",
+                "RSSI Measurement cannot run while RX is active. Stop RX first.",
+            )
+            return
+        }
+        val centerHz = settings.effectiveLoHz
+        val plutoIp = settings.txDestinationIP
+        rssiIsScanning = true
+        rssiStatus = settings.t("検索中...", "Searching...")
+        rssiSweepStartHz = startHz
+        rssiSweepEndHz = endHz
+        rssiMeasurements = emptyList()
+        rssiGainChangedAtMs = 0L
+
+        rssiJob = viewModelScope.launch {
+            // SSB/FMも同じPlutoのRX LOを使うため、先に止めてPlutoの設定をDATV側へ戻しておく。
+            ssbFm.stopAndWait()
+            var session: RssiNativeSession? = null
+            var sweepBest: RssiMeasurement? = null
+            fun beginSweep() {
+                rssiMeasurements = emptyList()
+                sweepBest = null
+            }
+            fun commitSweep() {
+                val best = sweepBest ?: return
+                val values = rssiMeasurements.map { it.rssiDb }
+                if (values.isEmpty() || values.max() - values.min() < RSSI_PEAK_THRESHOLD_DB) return
+                rssiBestFrequencyHz = best.frequencyHz
+                rssiBestRssiDb = best.rssiDb
+            }
+            try {
+                if (settings.useOnDeviceGRDVBS2Rx) {
+                    if (isTransmitting) stopTX()
+                    rssiTxStartedByScan = true
+                    // ★映像ソースの選択に関係なくテストパターン(カラーバー)で送る。RSSI測定では
+                    // 映像の中身は関係なく電波が出ていればよく、カメラ・画像の有無で送信が失敗
+                    // しないようにする(Pi5版で、カメラ未接続時に何も送信されずRSSIが変化しない
+                    // 不具合を実機確認)。画像(usePhotoSource)はカラーバーより優先されるので両方指定する。
+                    startTX(settings.copy(useColorBarSource = true, usePhotoSource = false))
+                    while (isPreparingTx) delay(100)
+                    if (!isTransmitting) {
+                        rssiRestrictionMessage = settings.t(
+                            "送信の自動開始に失敗したため、検索を中止しました。",
+                            "Automatic TX start failed, so the search was canceled.",
+                        )
+                        return@launch
+                    }
+                    // ★TX起動直後は送信がまだ安定していないため、3秒待ってから測定を始める。
+                    delay(3_000)
+                }
+                if (!isPlutoReachable(plutoIp)) {
+                    rssiStatus = settings.t("エラー: Plutoへ接続できません", "Error: cannot connect to Pluto")
+                    return@launch
+                }
+                suspend fun openSession(): RssiNativeSession? = withContext(Dispatchers.IO) {
+                    session?.close()
+                    RssiNativeSession(plutoIp).takeIf { it.isOpen }?.also {
+                        it.setRxGain(settings.rxAgcEnabled, settings.rxGainDb)
+                    }.also { session = it }
+                }
+                var opened = openSession()
+                if (opened == null) {
+                    rssiStatus = settings.t("エラー: Plutoへ接続できません", "Error: cannot connect to Pluto")
+                    return@launch
+                }
+                beginSweep()
+                var frequencyHz = startHz
+                var consecutiveFailures = 0
+                while (isActive) {
+                    val changedAt = rssiGainChangedAtMs
+                    if (changedAt != 0L && System.currentTimeMillis() - changedAt >= RSSI_GAIN_APPLY_DELAY_MS) {
+                        rssiGainChangedAtMs = 0L
+                        val current = opened!!
+                        withContext(Dispatchers.IO) { current.setRxGain(settings.rxAgcEnabled, settings.rxGainDb) }
+                        beginSweep()
+                        frequencyHz = startHz
+                    }
+                    if (frequencyHz > endHz) {
+                        if (!settings.rssiRepeatScan) break
+                        commitSweep()
+                        beginSweep()
+                        frequencyHz = startHz
+                        continue
+                    }
+                    val current = opened!!
+                    val rssi = withContext(Dispatchers.IO) { current.measure(frequencyHz) }
+                    if (!rssi.isFinite()) {
+                        // ★Wi-Fiの再接続等でPlutoとの接続が切れると以降の測定がすべて失敗する。
+                        // 接続し直して同じ周波数を測り直し、続けて失敗したら検索を中止して知らせる。
+                        consecutiveFailures++
+                        FileLogger.log("RSSI", "measure failed freqHz=$frequencyHz consecutive=$consecutiveFailures")
+                        if (consecutiveFailures >= RSSI_MAX_CONSECUTIVE_FAILURES) {
+                            rssiStatus = settings.t(
+                                "エラー: Plutoとの通信が途切れたため検索を中止しました(Wi-Fi接続を確認してください)",
+                                "Error: lost connection to Pluto, search stopped (check the Wi-Fi connection)",
+                            )
+                            break
+                        }
+                        opened = openSession() ?: continue
+                        continue
+                    }
+                    consecutiveFailures = 0
+                    run {
+                        val measurement = RssiMeasurement(frequencyHz, rssi)
+                        rssiMeasurements = rssiMeasurements + measurement
+                        if (sweepBest == null || rssi < sweepBest!!.rssiDb) {
+                            sweepBest = measurement
+                            rssiStatus = settings.t(
+                                "検索中: ${frequencyHz / 1000} kHz / RSSI ${formatRssiValue(rssi)}",
+                                "Searching: ${frequencyHz / 1000} kHz / RSSI ${formatRssiValue(rssi)}",
+                            )
+                        }
+                    }
+                    frequencyHz += stepHz
+                    delay(RSSI_STEP_INTERVAL_MS)
+                }
+            } finally {
+                // キャンセル後も後片付け(Plutoを元の中心周波数へ戻す・クローズ)は必ず完了させる。
+                withContext(Dispatchers.IO + NonCancellable) {
+                    session?.let { if (it.isOpen) it.measure(centerHz) }
+                    session?.close()
+                }
+                commitSweep()
+                if (rssiTxStartedByScan) {
+                    rssiTxStartedByScan = false
+                    stopTX()
+                }
+                rssiIsScanning = false
+                rssiJob = null
+                if (rssiStatus.startsWith("検索中") || rssiStatus.startsWith("Searching")) {
+                    rssiStatus = settings.t("検索待機中", "Search idle")
+                }
+            }
+        }
+    }
+
+    /** 検索を即座に停止する(その時点までの周回の結果を確定する)。 */
+    fun stopRssi() {
+        rssiJob?.cancel()
+    }
+
+    fun setRssiRepeatScan(repeat: Boolean) {
+        updateSettings { it.copy(rssiRepeatScan = repeat) }
+    }
+
+    /** RSSI画面からのRXゲイン変更(RXゲイン画面と同じ設定値)。検索中は250ms後にPlutoへ反映する。 */
+    fun setRssiRxGain(agcEnabled: Boolean, gainDb: Int) {
+        updateSettings { it.copy(rxAgcEnabled = agcEnabled, rxGainDb = gainDb.coerceIn(RX_GAIN_MIN_DB, RX_GAIN_MAX_DB)) }
+        if (rssiIsScanning) rssiGainChangedAtMs = System.currentTimeMillis()
+    }
+
+    fun clearRssiRestrictionMessage() { rssiRestrictionMessage = null }
 }

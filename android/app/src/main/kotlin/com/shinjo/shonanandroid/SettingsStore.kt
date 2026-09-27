@@ -33,6 +33,7 @@ object SettingsStore {
         const val PHOTO_NOTE = "photoNote"
         const val USE_COLOR_BAR_SOURCE = "useColorBarSource"
         const val TRANSMIT_AUDIO = "transmitAudio"
+        const val RSSI_REPEAT_SCAN = "rssiRepeatScan"
         const val RX_AGC_ENABLED = "rxAgcEnabled"
         const val RX_GAIN_DB = "rxGainDb"
         const val TX_POWER_DB = "txPowerDb"
@@ -70,6 +71,7 @@ object SettingsStore {
             photoNote = prefs.getString(Keys.PHOTO_NOTE, default.photoNote) ?: default.photoNote,
             useColorBarSource = prefs.getBoolean(Keys.USE_COLOR_BAR_SOURCE, default.useColorBarSource),
             transmitAudio = prefs.getBoolean(Keys.TRANSMIT_AUDIO, default.transmitAudio),
+            rssiRepeatScan = prefs.getBoolean(Keys.RSSI_REPEAT_SCAN, default.rssiRepeatScan),
             rxAgcEnabled = prefs.getBoolean(Keys.RX_AGC_ENABLED, default.rxAgcEnabled),
             rxGainDb = if (settingsVersion < SETTINGS_VERSION) 60 else prefs.getInt(Keys.RX_GAIN_DB, default.rxGainDb),
             txPowerDb = if (settingsVersion < SETTINGS_VERSION) 0 else prefs.getInt(Keys.TX_POWER_DB, default.txPowerDb),
@@ -100,6 +102,7 @@ object SettingsStore {
             putString(Keys.PHOTO_NOTE, settings.photoNote)
             putBoolean(Keys.USE_COLOR_BAR_SOURCE, settings.useColorBarSource)
             putBoolean(Keys.TRANSMIT_AUDIO, settings.transmitAudio)
+            putBoolean(Keys.RSSI_REPEAT_SCAN, settings.rssiRepeatScan)
             putBoolean(Keys.RX_AGC_ENABLED, settings.rxAgcEnabled)
             putInt(Keys.RX_GAIN_DB, settings.rxGainDb)
             putInt(Keys.TX_POWER_DB, settings.txPowerDb)

@@ -164,6 +164,9 @@ data class AppSettings(
     var useColorBarSource: Boolean = false,
     /** trueの場合、送信時にマイク音声をAACで多重化する。 */
     var transmitAudio: Boolean = true,
+    /** RSSI測定の検索方法。true=連続(「検索停止」まで繰り返す)、false=1回(範囲の終わりで自動停止)。
+     *  Shonan_Lite-winの`rssi_repeat_scan`と同じ既定値。 */
+    var rssiRepeatScan: Boolean = true,
 
     // 受信感度
     var rxAgcEnabled: Boolean = true,

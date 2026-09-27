@@ -51,17 +51,18 @@ private data class HomeTab(val titleJA: String, val titleEN: String, val route: 
     val isSpacer: Boolean get() = route.isEmpty()
 }
 
-/** タブ形式のホーム画面に表示する機能一覧(RSSI測定/機器試験はAndroid電話版では非搭載)。 */
+/** タブ形式のホーム画面に表示する機能一覧(機器試験はAndroid電話版では非搭載)。 */
 private val homeTabs = listOf(
     HomeTab("SSB/FM", "SSB/FM", "ssbfm"),
     HomeTab("", "", ""), // SSB/FMとDATV側のタブの間を1タブ分あける
     HomeTab("送信", "Transmit", "tx"),
     HomeTab("受信", "Receive", "rx"),
+    HomeTab("RSSI測定", "RSSI", "rssi"),
     HomeTab("周波数", "Frequency", "frequency"),
+    HomeTab("設定１", "Config 1", "settings"),
     HomeTab("設定２", "Config 2", "gainpower"),
     HomeTab("設定３", "Config 3", "modcod"),
     HomeTab("設定４", "Config 4", "sourceoutput"),
-    HomeTab("設定", "Config", "settings"),
     HomeTab("ヘルプ", "Help", "help"),
 )
 
@@ -213,6 +214,7 @@ fun HomeScreen(viewModel: AppViewModel) {
                     "gainpower" -> GainPowerSettingsScreen(viewModel)
                     "modcod" -> ModCodSettingsScreen(viewModel)
                     "sourceoutput" -> SourceOutputSettingsScreen(viewModel)
+                    "rssi" -> RssiScreen(viewModel)
                     "settings" -> SettingsScreen(viewModel, onNavigate)
                     "help" -> HelpScreen(viewModel, onNavigate)
                 }

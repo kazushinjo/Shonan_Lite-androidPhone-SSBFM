@@ -63,10 +63,10 @@ private val rxSteps = listOf(
         "Set the Frequency and Config 3 tabs to match the transmitting side.",
     ),
     HelpStep(
-        "「設定」タブで受信方式を選ぶ: オフ(既定)のままなら外部復調機器からのUDP-TSを「設定４」タブ「配信先」の"
+        "「設定１」タブで受信方式を選ぶ: オフ(既定)のままなら外部復調機器からのUDP-TSを「設定４」タブ「配信先」の"
             + "TSポート/ステータスポートで待ち受ける。オンにするとPlutoのRF信号をAndroid自身が復調する"
             + "(送信と同時に行う場合はPluto保護のため必ずアッテネータを接続すること)",
-        "On the Settings tab, choose the receive path: leave On-device demodulation off (default) to "
+        "On the Config 1 tab, choose the receive path: leave On-device demodulation off (default) to "
             + "listen for UDP-TS from an external demodulator on the TS/Status ports set on the Config 4 tab (Stream Output); "
             + "turn it on to have Android demodulate Pluto's RF directly (an attenuator is required if "
             + "transmitting at the same time, to protect the Pluto).",
@@ -90,14 +90,14 @@ private val helpSections = listOf(
             + "周波数表示の桁をタップすると同調ステップ、長押しで直接入力、右の1.2G・2.4G・5.6Gでバンドを"
             + "切り替えます(バンドごとに最後の周波数とモードを覚えます)。スペクトル/ウォーターフォールを"
             + "左右にドラッグすると同調、タップするとその周波数へ移動します。スケルチはFMのみ有効です。"
-            + "「設定」タブで「PA/PTTコントローラを使う」をONにしてESP32+W5500のIPアドレスを入れておくと、PTTに連動して"
+            + "「設定１」タブで「PA/PTTコントローラを使う」をONにしてESP32+W5500のIPアドレスを入れておくと、PTTに連動して"
             + "送信開始/終了を通知します(応答がない場合は送信しません)。",
         "Transmit and receive USB and FM with Pluto (not at the same time as DATV). Tap Start to begin "
             + "receiving; the radio transmits while PTT is held (or toggles with latching PTT). Tap a digit "
             + "of the frequency to choose the tuning step, long-press to type a frequency, and use the "
             + "1.2G/2.4G/5.6G buttons to change band (each band remembers its last frequency and mode). "
             + "Drag the spectrum/waterfall to tune, or tap it to jump to that frequency. Squelch works in FM "
-            + "only. If \"Use the PA/PTT controller\" is on (Settings tab) with the ESP32+W5500 IP address, PTT "
+            + "only. If \"Use the PA/PTT controller\" is on (Config 1 tab) with the ESP32+W5500 IP address, PTT "
             + "notifies it of TX start/stop (the app does not transmit if it does not respond).",
     ),
     HelpSection(
@@ -121,6 +121,23 @@ private val helpSections = listOf(
             + "fullscreen automatically (the tabs at the top are hidden too); tap the screen to reveal "
             + "the status card and buttons for 5 seconds (it returns to fullscreen automatically if "
             + "still locked). Fullscreen ends if the lock is lost for 1.5 seconds or more.",
+    ),
+    HelpSection(
+        "RSSI測定", "RSSI Measurement",
+        "「周波数」タブの運用周波数を中心に、±5/10/20MHzの範囲をステップごとに走査してPlutoのRSSIを測り、"
+            + "グラフと「最も強い周波数」を表示します(RSSIは値が小さいほど強い信号です)。検索方法は「連続」"
+            + "(「検索停止」まで繰り返す)と「1回」から選べ、RXゲイン(AGC/手動)は「設定２」と共通です。"
+            + "「設定１」タブのオンデバイス復調がONのときはテスト用で、検索開始と同時に自局もテストパターンで"
+            + "送信し、自分の電波のRSSIを測ります(アッテネータを必ず接続すること)。OFFのときは送信せず、"
+            + "相手局の電波のRSSIを測ります(相手局が送信していなければグラフが平らなのは正常です)。"
+            + "受信中・SSB/FM動作中は同時に使えません(SSB/FMは検索開始時に自動で止めます)。タブを離れると検索は止まります。",
+        "Sweeps ±5/10/20 MHz around the operating frequency (Frequency tab) in steps, measures Pluto's RSSI, "
+            + "and shows a graph and the strongest frequency (a smaller RSSI means a stronger signal). Choose "
+            + "Repeat (until Stop) or Once; the RX gain (AGC/manual) is shared with Config 2. When on-device "
+            + "demodulation (Config 1 tab) is on, this is a test mode: the app also transmits a test pattern "
+            + "and measures its own signal (always connect an attenuator). When it is off, the app does not "
+            + "transmit and measures the other station (a flat graph is normal if nobody is transmitting). "
+            + "It cannot run during RX or SSB/FM (SSB/FM is stopped when a search starts). Leaving the tab stops the search.",
     ),
     HelpSection(
         "周波数", "Frequency",
@@ -180,7 +197,7 @@ private val helpSections = listOf(
             + "UDP-TS from an external demodulator when on-device demodulation is off.",
     ),
     HelpSection(
-        "設定", "Settings",
+        "設定１", "Config 1",
         "表示言語(ホーム画面を除く全画面)と、オンデバイス復調(GNU Radio)の有効/無効を設定します。"
             + "オンデバイス復調をONにすると、Pluto1台でRFのループバック試験ができます"
             + "(画像を送信しながら同時にその画像を受信します)。外部アッテネータなしで行うと"

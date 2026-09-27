@@ -836,7 +836,10 @@ public:
             ctx_ = nullptr;
             return false;
         }
-        iio_context_set_timeout(ctx_, 30000);
+        // ★30秒だと、Wi-Fiの再接続等でPlutoとのTCP接続が切れた際に1回の測定が
+        // 30秒以上戻らず、「検索停止」も効かないまま画面が止まって見えた(タブレット版の実機で確認)。
+        // Shonan_Lite-winのiio_attr呼び出し(timeout=2秒)に合わせて2秒にする。
+        iio_context_set_timeout(ctx_, 2000);
         auto *phy = iio_context_find_device(ctx_, "ad9361-phy");
         if (!phy) return false;
         phyChan_ = iio_device_find_channel(phy, "voltage0", false);
@@ -845,10 +848,17 @@ public:
         if (const auto *attr = iio_channel_find_attr(phyChan_, "rf_port_select")) {
             iio_attr_write_string(attr, "A_BALANCED");
         }
-        if (const auto *attr = iio_channel_find_attr(phyChan_, "gain_control_mode")) {
-            iio_attr_write_string(attr, "slow_attack");
-        }
+        // RXゲイン(AGC/手動)は呼び出し側がsetRxGain()で設定する(設定２タブと同じ設定値)。
         return true;
+    }
+
+    bool setRxGain(bool agcEnabled, int gainDb) {
+        if (!phyChan_) return false;
+        const auto *mode = iio_channel_find_attr(phyChan_, "gain_control_mode");
+        if (!mode || iio_attr_write_string(mode, agcEnabled ? "slow_attack" : "manual") < 0) return false;
+        if (agcEnabled) return true;
+        const auto *gain = iio_channel_find_attr(phyChan_, "hardwaregain");
+        return gain && iio_attr_write_longlong(gain, gainDb) >= 0;
     }
 
     double measure(int64_t frequencyHz) {
@@ -892,6 +902,13 @@ Java_com_shinjo_shonanandroid_dvbs2_RssiNativeSession_nativeMeasure(
         JNIEnv * /* env */, jobject /* thiz */, jlong handle, jlong frequencyHz) {
     auto *session = reinterpret_cast<RssiSession *>(handle);
     return session ? session->measure(frequencyHz) : NAN;
+}
+
+extern "C" JNIEXPORT jboolean JNICALL
+Java_com_shinjo_shonanandroid_dvbs2_RssiNativeSession_nativeSetRxGain(
+        JNIEnv * /* env */, jobject /* thiz */, jlong handle, jboolean agcEnabled, jint gainDb) {
+    auto *session = reinterpret_cast<RssiSession *>(handle);
+    return session && session->setRxGain(agcEnabled == JNI_TRUE, gainDb) ? JNI_TRUE : JNI_FALSE;
 }
 
 extern "C" JNIEXPORT void JNICALL

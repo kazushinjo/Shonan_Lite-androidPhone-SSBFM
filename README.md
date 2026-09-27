@@ -26,7 +26,7 @@ the Pluto version of [Langstone-V2](https://github.com/g4eml/Langstone-V2) by G4
   AD9361のFIRなしの下限を下回るため、libad9361-iio(Analog Devices、LGPL-2.1)の`ad9361_set_bb_rate()`と
   同じ手順でFIRを読み込む。停止時はサンプルレート・LO・利得を開始前の値へ戻す。DATVの送受信とは排他
   (どちらかを始めると他方は止まる)。DATV送信の開始時には従来どおり`udpts.sh`が再起動される。
-- **PA/PTTコントローラ連携**: 「設定」タブで「PA/PTTコントローラを使う」をONにし、ESP32+W5500(W5500_PA_PTT_Control)の
+- **PA/PTTコントローラ連携**: 「設定１」タブで「PA/PTTコントローラを使う」をONにし、ESP32+W5500(W5500_PA_PTT_Control)の
   IPアドレス(既定192.168.0.100)を入れておくと(既定はON)、PTTに連動して`GET /tx?state=on|off`を送る。送信開始はESP32へ通知→150ms待つ→
   PlutoのRF開始、送信終了はRF停止→ESP32へ通知の順。ONなのにESP32が応答しない場合は送信しない。
 - **実装**: `android/app/src/main/cpp/ssbfm_dsp.h`(DSP)、`ssbfm_bridge.cpp`(Pluto制御・AAudio・JNI)、
@@ -64,9 +64,9 @@ single screen whose functions are switched with tabs at the top, to fit a narrow
 
 ## 主な機能
 
-- **画面構成**: 上部のタブ(SSB/FM・送信・受信・周波数・設定２(受信感度・送信出力)・設定３(シンボルレート・誤り訂正・変調方式)・設定４(映像ソース・配信先)・
-  設定・ヘルプ)で切り替える。上部バーに「アプリ再起動」「終了」。
-  タブレット版にあるRSSI測定・機器試験は搭載していない。
+- **画面構成**: 上部のタブ(SSB/FM・送信・受信・RSSI測定・周波数・設定１(表示言語・受信復調・PA/PTTコントローラ)・設定２(受信感度・送信出力)・設定３(シンボルレート・誤り訂正・変調方式)・設定４(映像ソース・配信先)・
+  ヘルプ)で切り替える。上部バーに「アプリ再起動」「終了」。
+  RSSI測定はタブレット版から移植した(オンデバイス復調ON=自局も送信するテスト用、OFF=相手局を測る)。機器試験は搭載していない。
 - **送信**: 周波数・シンボルレート(250k〜2 Msym/s)・誤り訂正(1/2・3/5・8/9)・変調方式(QPSK・8PSK)・
   出力減衰量(-70〜0 dB)を設定し、UDP-TSでPlutoへ送ってPluto内蔵の変調器で送信する(送信先ポートは8282固定)。
   送信映像はHD(1280x720)・30fps。

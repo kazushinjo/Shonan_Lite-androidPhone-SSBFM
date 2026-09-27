@@ -295,7 +295,7 @@ fun RxScreen(
                         }
                         Spacer(modifier = Modifier.width(8.dp))
                     }
-                    SecondaryButton(settings.t("設定", "Settings")) {
+                    SecondaryButton(settings.t("設定１", "Config 1")) {
                         onNavigate("settings")
                     }
                 }
