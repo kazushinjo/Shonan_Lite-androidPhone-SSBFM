@@ -172,7 +172,8 @@ class SsbFmController(
     }
 
     fun setFrequency(hz: Long) {
-        val clamped = hz.coerceIn(SsbFmSettings.MIN_FREQUENCY_HZ, SsbFmSettings.MAX_FREQUENCY_HZ)
+        // 表示の最小桁(100Hz)に揃える
+        val clamped = ((hz + 50) / 100 * 100).coerceIn(SsbFmSettings.MIN_FREQUENCY_HZ, SsbFmSettings.MAX_FREQUENCY_HZ)
         if (clamped == settings.frequencyHz) return
         update { it.copy(frequencyHz = clamped) }
         frequencyRequests.value = clamped
@@ -183,7 +184,7 @@ class SsbFmController(
         withNative { it.setMode(mode) }
     }
 
-    fun setStep(stepHz: Long) = update { it.copy(stepHz = stepHz) }
+    fun setStep(stepHz: Long) = update { it.copy(stepHz = stepHz.coerceAtLeast(SsbFmSettings.MIN_STEP_HZ)) }
 
     /** 今の周波数が属するバンド(どのバンドにも入らなければnull)。 */
     val currentBand: SsbFmBand? get() = SsbFmBand.of(settings.frequencyHz)

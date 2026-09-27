@@ -243,7 +243,10 @@ fun SsbFmScreen(viewModel: AppViewModel) {
     }
 }
 
-/** 周波数表示。各桁をタップするとその桁を同調ステップにし、長押しで直接入力する。 */
+/**
+ * 周波数表示(MHz単位の8桁、例: 1295.100.0。最下位は100Hz)。各桁をタップするとその桁を
+ * 同調ステップにし、長押しで直接入力する。
+ */
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun FrequencyDisplay(
@@ -253,8 +256,9 @@ private fun FrequencyDisplay(
     onLongPress: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val digits = frequencyHz.toString().padStart(10, '0')
-    val firstSignificant = digits.indexOfFirst { it != '0' }.let { if (it < 0) 9 else it }
+    // 10^9〜10^2 Hzの8桁
+    val digits = (frequencyHz / 100).toString().padStart(8, '0')
+    val firstSignificant = digits.indexOfFirst { it != '0' }.let { if (it < 0) 7 else it }
     Row(modifier, verticalAlignment = Alignment.Bottom) {
         digits.forEachIndexed { index, ch ->
             val power = 9 - index
@@ -275,7 +279,7 @@ private fun FrequencyDisplay(
                             else Modifier,
                         ),
                 )
-                if (power == 9 || power == 6 || power == 3) {
+                if (power == 6 || power == 3) {
                     Text(".", color = SsbFreqColor, fontSize = 30.sp, fontFamily = FontFamily.Monospace)
                 }
             }
@@ -338,7 +342,7 @@ private fun Modifier.tuningGestures(c: SsbFmController): Modifier = this
         detectHorizontalDragGestures(onDragStart = { pending = 0f }) { change, dragAmount ->
             change.consume()
             val s = c.settings
-            val grid = if (s.mode == SsbFmMode.FM) 1_000L else 10L
+            val grid = if (s.mode == SsbFmMode.FM) 1_000L else 100L
             pending -= dragAmount * SsbFmNative.SPECTRUM_SPAN_HZ / size.width
             val steps = (pending / grid).toLong()
             if (steps != 0L) {
@@ -515,7 +519,7 @@ private fun FrequencyEntryDialog(
     onDismiss: () -> Unit,
     onConfirm: (Long) -> Unit,
 ) {
-    var text by remember { mutableStateOf("%.6f".format(initialHz / 1e6)) }
+    var text by remember { mutableStateOf("%.4f".format(initialHz / 1e6)) }
     val parsed = text.trim().toDoubleOrNull()?.let { (it * 1e6).roundToLong() }
     val valid = parsed != null && parsed in SsbFmSettings.MIN_FREQUENCY_HZ..SsbFmSettings.MAX_FREQUENCY_HZ
     AlertDialog(

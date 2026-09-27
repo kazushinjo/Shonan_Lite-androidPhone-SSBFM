@@ -42,6 +42,8 @@ data class SsbFmSettings(
 ) {
     companion object {
         const val SQUELCH_OFF = -200f
+        /** 周波数表示の最下位桁(100Hz)。これより細かいステップは使わない。 */
+        const val MIN_STEP_HZ = 100L
         const val MIN_FREQUENCY_HZ = 70_000_000L
         const val MAX_FREQUENCY_HZ = 6_000_000_000L
     }
@@ -60,7 +62,7 @@ object SsbFmSettingsStore {
                 "LSB" -> SsbFmMode.USB
                 else -> runCatching { SsbFmMode.valueOf(saved!!) }.getOrDefault(d.mode)
             },
-            stepHz = p.getLong("stepHz", d.stepHz),
+            stepHz = p.getLong("stepHz", d.stepHz).coerceAtLeast(SsbFmSettings.MIN_STEP_HZ),
             afGain = p.getFloat("afGain", d.afGain),
             squelchDb = p.getFloat("squelchDb", d.squelchDb),
             micGain = p.getFloat("micGain", d.micGain),
