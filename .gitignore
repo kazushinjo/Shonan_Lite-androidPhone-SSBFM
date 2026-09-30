@@ -6,3 +6,6 @@ android/**/build/
 android/local.properties
 android/keystore/
 android/third_party/.build-tmp*
+
+# KiCadの画面の状態(レイヤーの表示・拡大率など)。設計データではないので管理しない
+*.kicad_prl
