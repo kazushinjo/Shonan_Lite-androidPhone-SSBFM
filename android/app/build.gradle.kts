@@ -23,7 +23,7 @@ android {
         minSdk = 26
         targetSdk = 35
         versionCode = 1
-        versionName = "0.1"
+        versionName = "1.0"
 
         ndk {
             // third_party/ffmpeg-mpegts-install-arm64-v8a is arm64-v8a only
