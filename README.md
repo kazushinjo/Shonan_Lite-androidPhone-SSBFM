@@ -517,6 +517,7 @@ assembly drawing: [`w5500-esp32_実装図_部品番号.pdf`](hardware/W5500_PA_P
 
 本プログラムはフリーソフトウェアです。GNU General Public License v3(またはそれ以降のバージョン)の下で
 再配布・改変することができます。全文は[LICENSE](LICENSE)を参照してください。
+同梱している第三者ソフトウェアのライセンスは[THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)を参照してください。
 
 ```
 Copyright (C) 2026  Kazuichi Shinjo
@@ -579,6 +580,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License
 v3 (or any later version). See [LICENSE](LICENSE) for the full text.
+For the licenses of the bundled third-party software, see [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
 
 ```
 Copyright (C) 2026  Kazuichi Shinjo
