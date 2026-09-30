@@ -216,13 +216,17 @@ private val helpSections = listOf(
             + "(画像を送信しながら同時にその画像を受信します)。外部アッテネータなしで行うと"
             + "Plutoを破損する恐れがあるため、有効化時に必ず警告が表示されます。"
             + "「PA/PTTコントローラを使う」(既定ON)とIPアドレス(既定192.168.0.100)は、SSB/FMタブのPTTと"
-            + "ESP32+W5500(W5500_PA_PTT_Control)の連携に使います(GET /tx?state=on|off)。",
+            + "ESP32+W5500(hardware/W5500_PA_PTT_Control)の連携に使います(GET /tx?state=on|off)。"
+            + "DATVの送信開始/終了でも同じ通知を送り、アプリ起動の5秒後に12V電源(Pluto含む)をON、"
+            + "「終了」でPTTと12V電源をOFFにします(GET /ch?idx=0&state=on|off)。",
         "Sets on-device demodulation (GNU Radio) and the PA/PTT controller (the display language is switched in "
             + "the top bar). Enabling on-device demodulation lets you run an RF loopback test with a single Pluto "
             + "(you transmit an image while receiving that same image). Doing so without an external attenuator can "
             + "damage the Pluto, so a warning is always shown before enabling it. \"Use the PA/PTT controller\" "
             + "(default: on) and its IP address (default: 192.168.0.100) link the SSB/FM tab's PTT to the ESP32+W5500 "
-            + "board (W5500_PA_PTT_Control) via GET /tx?state=on|off.",
+            + "board (hardware/W5500_PA_PTT_Control) via GET /tx?state=on|off. DATV TX start/stop sends the same "
+            + "notifications, the 12 V power (including the Pluto) is turned ON 5 seconds after app start, and Quit "
+            + "turns PTT and the 12 V power OFF (GET /ch?idx=0&state=on|off).",
     ),
     HelpSection(
         "設定２", "Config 2",

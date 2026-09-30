@@ -1,13 +1,12 @@
 // ============================================================
 //  W5500_PA_PTT_Control.ino
-//  ESP32 + W5500 イーサネット経由 12V電源/PTT制御
-//  - Raspberry Pi5からのHTTPコマンドで12V電源・PTTを制御
-//  - 12V電源ON要求  : 受信後 設定秒数(既定) 待ってからON
-//  - PTT ON要求     : 受信後 設定ms(既定)   待ってからON
-//  - OFF要求は安全のため常に即時反映（保留中のON要求もキャンセル）
-//  - 遅延時間・自機IPアドレスはWeb UI/HTTP APIから変更可能
-//    （設定はNVS=Preferencesに保存され、電源断後も保持される）
-//  - 固定IP方式。初期IPは 192.168.0.100/24
+//  ESP32 + W5500 イーサネット経由 GPIO26/27 電源制御
+//  - 12V電源(2SJ334ハイサイドスイッチ)とPTTのON/OFFをブラウザから制御（ラッチ式）
+//  - 固定IPアドレス方式（初期値 192.168.0.100/24）。Web/APIから変更可能
+//  - 12V電源ON要求・PTT ON要求は、それぞれ設定した遅延時間の後に実際にONへ
+//    遷移する（OFF要求は安全のため常に即時反映）
+//  - 遅延時間・IPアドレスの設定はNVS(Preferences)に保存され、電源断後も保持
+//  - Arduino公式 Ethernet ライブラリ（W5500対応）を使用
 //
 //  【配線】
 //  W5500      ESP32 (VSPI)
@@ -16,31 +15,33 @@
 //  MISO       GPIO 19
 //  MOSI       GPIO 23
 //  CS(SS)     GPIO 5
-//  RST        (未使用。EN/3.3Vへ配線 or 未接続可)
+//  RST        GPIO 21（active-LOW。起動時にパルスを出してハードリセットする）
 //  VCC        3.3V
 //  GND        GND
 //
 //  出力（ラッチ式ON/OFF、いずれもactive-HIGH想定）
-//  LNA : GPIO 25 （受信プリアンプ。起動時はON＝受信状態）
-//  PTT : GPIO 26 （起動時はOFF）
-//  12V : GPIO 27 （PA用12V電源。起動時はOFF）
+//  POWER: GPIO 26 （Q1/Q5(2SJ334)経由の12V電源ハイサイドスイッチ。起動時はOFF）
+//  PTT  : GPIO 27 （Q3経由でPTT_ON信号をGNDへ落とす。起動時はOFF）
 //
-//  【Raspberry Pi5 連携（推奨シーケンス）】
-//    1) GET /power?state=on   … 12V電源ON要求（設定秒数後にON）
-//       ※ 電源安定後にPTTを送ること
-//    2) GET /ptt?state=on     … PTT ON要求（設定ms後にON、LNAは自動OFF）
-//    3) GET /ptt?state=off    … PTT即時OFF（LNAは自動ON）
-//    4) GET /power?state=off  … 12V電源即時OFF
+//  ※GPIO25(旧LNA制御)は現行回路では未接続のため廃止。
+//
+//  【shonan-android / Shonan_Lite-RasPI5(pi5/gui) 連携】
+//  送信ボタンON  : GET /tx?state=on  → 設定ms後にPTT on
+//  送信ボタンOFF : GET /tx?state=off → PTT即時off
+//  （12V電源はPi5アプリの起動/終了に連動して /ch?idx=0 で独立に制御する。
+//    TX/RXシーケンスでは電源には触れない）
+//
+//  【個別チャンネル制御】
+//  GET /ch?idx=0&state=on   … 12V電源ON要求（設定秒数後にON）
+//  GET /ch?idx=0&state=off  … 12V電源即時OFF（保留中のON要求もキャンセル）
+//  GET /ch?idx=1&state=on   … PTT ON要求（設定ms後にON）
+//  GET /ch?idx=1&state=off  … PTT即時OFF（保留中のON要求もキャンセル）
 //
 //  【設定変更】
-//    GET /config                                        設定画面(HTML)
-//    GET /config/delay?pwr_delay_sec=3&ptt_delay_ms=50   遅延時間を保存
+//    GET /config                                          設定画面(HTML)
+//    GET /config/delay?power_delay_sec=3&ptt_delay_ms=50   遅延時間を保存
 //    GET /config/network?ip=192.168.0.100&gateway=192.168.0.1&subnet=255.255.255.0
-//                                                         IP設定を保存し自動再起動
-//
-//  【旧互換】
-//    GET /tx?state=on|off  … tanzawa-android連携用の一括シーケンス
-//                             (LNA off -> PTT/12V遅延ON / PA・PTT即時OFF -> LNA on)
+//                                                           IP設定を保存し自動再起動
 // ============================================================
 
 #include <SPI.h>
@@ -51,25 +52,26 @@
 //  設定
 // ============================================================
 
-// MACアドレス: 第1オクテット下位2bit目(0x02)をセットした
-// ローカル管理アドレス(LAA)。IEEEが実ベンダーに割り当てるOUIとは
-// 体系的に重複しないため、国内外問わず実在機器との衝突リスクが低い。
-static byte mac[] = { 0x02, 0x4A, 0x50, 0x35, 0x35, 0x30 }; // 覚えやすさ優先の任意値
+// W5500にはMACアドレスが内蔵されていないため任意の値を設定
+// （同一ネットワーク内で他機器と重複しないこと）
+static byte mac[] = { 0x02, 0xAA, 0xBB, 0xCC, 0xDE, 0x01 };
 
-const int PIN_CS = 5;
+const int PIN_CS  = 5;
+const int PIN_RST = 21;  // W5500 RST（active-LOW）
 
-const int IDX_LNA = 0;
-const int IDX_PTT = 1;
-const int IDX_PWR = 2;   // 12V電源（旧PA）
+const int IDX_POWER = 0;
+const int IDX_PTT   = 1;
 
-const int PIN_OUT[3] = { 25, 26, 27 };
-const char* OUT_LABEL[3] = { "LNA (GPIO25)", "PTT (GPIO26)", "12V PWR (GPIO27)" };
+const int PIN_OUT[2] = { 26, 27 };
+const char* OUT_LABEL[2] = { "POWER 12V (GPIO26)", "PTT (GPIO27)" };
 
 // 基板搭載LED（PTT ON中に点灯）
 const int PIN_ONBOARD_LED = 2;
 
-// 起動時はLNA=ON（受信状態）、PTT/12V=OFF
-bool outState[3] = { true, false, false };
+// 起動時は両方OFF（POWERはPi5アプリ起動後に/ch?idx=0で明示的にON）
+bool outState[2] = { false, false };
+
+bool txActive = false;
 
 Preferences prefs;
 const char* PREFS_NS = "w5500cfg";
@@ -101,14 +103,14 @@ void loadConfig() {
     powerDelayMs = prefs.getULong("pwr_delay_ms", 3000);
     pttDelayMs   = prefs.getULong("ptt_delay_ms", 50);
 
-    String ipStr   = prefs.getString("ip",     "192.168.0.100");
-    String gwStr   = prefs.getString("gw",     "192.168.0.1");
-    String maskStr = prefs.getString("mask",   "255.255.255.0");
+    String ipStr   = prefs.getString("ip",   "192.168.0.100");
+    String gwStr   = prefs.getString("gw",   "192.168.0.1");
+    String maskStr = prefs.getString("mask", "255.255.255.0");
     prefs.end();
 
-    if (!currentIP.fromString(ipStr))          currentIP = IPAddress(192, 168, 0, 100);
-    if (!currentGateway.fromString(gwStr))     currentGateway = IPAddress(192, 168, 0, 1);
-    if (!currentSubnet.fromString(maskStr))    currentSubnet = IPAddress(255, 255, 255, 0);
+    if (!currentIP.fromString(ipStr))       currentIP = IPAddress(192, 168, 0, 100);
+    if (!currentGateway.fromString(gwStr))  currentGateway = IPAddress(192, 168, 0, 1);
+    if (!currentSubnet.fromString(maskStr)) currentSubnet = IPAddress(255, 255, 255, 0);
 }
 
 void saveDelayConfig(uint32_t pwrMs, uint32_t pttMs) {
@@ -141,14 +143,9 @@ void applyOutput(int idx) {
 }
 
 void setOutput(int idx, bool on) {
-    if (idx < 0 || idx > 2) return;
+    if (idx < 0 || idx > 1) return;
     outState[idx] = on;
     applyOutput(idx);
-}
-
-void toggleOutput(int idx) {
-    if (idx < 0 || idx > 2) return;
-    setOutput(idx, !outState[idx]);
 }
 
 // ============================================================
@@ -165,7 +162,7 @@ void requestPowerOn() {
 
 void requestPowerOff() {
     pwrOnPending = false;
-    setOutput(IDX_PWR, false);
+    setOutput(IDX_POWER, false);
     Serial.println("[PWR] OFF要求受信 -> 即時OFF");
 }
 
@@ -184,7 +181,7 @@ void requestPttOff() {
 void servicePendingOutputs() {
     if (pwrOnPending && (unsigned long)(millis() - pwrOnRequestAt) >= powerDelayMs) {
         pwrOnPending = false;
-        setOutput(IDX_PWR, true);
+        setOutput(IDX_POWER, true);
         Serial.println("[PWR] 遅延経過 -> ON");
     }
     if (pttOnPending && (unsigned long)(millis() - pttOnRequestAt) >= pttDelayMs) {
@@ -195,26 +192,26 @@ void servicePendingOutputs() {
 }
 
 // ============================================================
-//  TX/RX シーケンス（tanzawa-android 旧互換）
+//  TX/RX 切替（shonan-android 連携）
+//  ※12V電源はここでは触らない。Pi5アプリの起動/終了連動(/ch?idx=0)でのみ制御する。
 // ============================================================
 
 void txStart() {
-    Serial.println("[TX] 送信シーケンス開始（旧互換 /tx）");
-    setOutput(IDX_LNA, false);
+    if (txActive) return;
+    txActive = true;
     requestPttOn();
-    requestPowerOn();
+    Serial.println("[TX] 送信シーケンス開始");
 }
 
 void txStop() {
-    Serial.println("[TX] 受信復帰シーケンス開始（旧互換 /tx）");
+    if (!txActive) return;
+    txActive = false;
     requestPttOff();
-    requestPowerOff();
-    setOutput(IDX_LNA, true);
+    Serial.println("[TX] 受信復帰");
 }
 
 // ============================================================
 //  クエリパラメータ簡易パーサ
-//  reqLine 例: "GET /config/delay?pwr_delay_sec=3&ptt_delay_ms=50 HTTP/1.1"
 // ============================================================
 
 static String extractQuery(const String& line) {
@@ -230,7 +227,6 @@ bool getQueryStr(const String& line, const String& key, String& outVal) {
     String pattern = key + "=";
     int pos = query.indexOf(pattern);
     if (pos < 0) return false;
-    // key の前が '&' か先頭であることを確認（部分一致誤検出を防ぐ）
     if (pos > 0 && query.charAt(pos - 1) != '&') return false;
     int start = pos + pattern.length();
     int end = query.indexOf('&', start);
@@ -268,6 +264,10 @@ void sendRedirect(EthernetClient& client, const char* location) {
 
 // ============================================================
 //  HTMLページ
+//  対応パス:
+//    GET /               ステータスページ
+//    GET /toggle?ch=0..1 指定チャンネルをトグルして / へリダイレクト（ON側は遅延あり、OFF側は即時。/chと同一ロジック）
+//    GET /api/status     JSON形式で現在状態を返す
 // ============================================================
 
 void sendStatusPage(EthernetClient& client) {
@@ -278,7 +278,10 @@ void sendStatusPage(EthernetClient& client) {
 
     client.println("<!DOCTYPE html><html lang='ja'><head><meta charset='UTF-8'>");
     client.println("<meta name='viewport' content='width=device-width,initial-scale=1'>");
-    client.println("<title>PA/PTT 電源制御</title>");
+    if (pwrOnPending || pttOnPending) {
+        client.println("<meta http-equiv='refresh' content='1'>");
+    }
+    client.println("<title>12V電源/PTT 制御</title>");
     client.println("<style>");
     client.println("body{margin:0;font-family:sans-serif;background:#000;color:#eee;text-align:center;padding-top:30px}");
     client.println("h1{color:#aaa;font-size:1.3em}");
@@ -290,10 +293,13 @@ void sendStatusPage(EthernetClient& client) {
     client.println(".btn-on{background:#1a4;color:#fff}.btn-off{background:#a11;color:#fff}");
     client.println("a.cfg{display:inline-block;margin-top:10px;color:#8cf;text-decoration:none}");
     client.println("</style></head><body>");
-    client.println("<h1>&#9889; PA/PTT 電源制御</h1>");
+    client.println("<h1>&#9889; 12V電源/PTT 制御</h1>");
+    client.print("<p style='font-size:1.1em'>状態: <b style='color:");
+    client.print(txActive ? "#f66'>送信中(TX)" : "#6c9'>受信中(RX)");
+    client.println("</b></p>");
 
-    for (int i = 0; i < 3; i++) {
-        bool pending = (i == IDX_PWR && pwrOnPending) || (i == IDX_PTT && pttOnPending);
+    for (int i = 0; i < 2; i++) {
+        bool pending = (i == IDX_POWER && pwrOnPending) || (i == IDX_PTT && pttOnPending);
         client.print("<div class='card'><div class='label'>");
         client.print(OUT_LABEL[i]);
         client.print("</div><div class='state ");
@@ -341,11 +347,11 @@ void sendConfigPage(EthernetClient& client) {
 
     client.println("<form action='/config/delay' method='GET'>");
     client.println("<fieldset><legend>遅延時間</legend>");
-    client.print("<label>12V電源 ON 遅延 [秒]（powerOn要求受信からON実行までの待ち時間）</label>");
-    client.print("<input type='number' step='0.1' min='0' name='pwr_delay_sec' value='");
+    client.print("<label>12V電源 ON 遅延 [秒]（/ch?idx=0&state=on 受信からON実行までの待ち時間）</label>");
+    client.print("<input type='number' step='0.1' min='0' name='power_delay_sec' value='");
     client.print(powerDelayMs / 1000.0, 1);
     client.println("'>");
-    client.print("<label>PTT ON 遅延 [ms]（PTT要求受信からON実行までの待ち時間）</label>");
+    client.print("<label>PTT ON 遅延 [ms]（/tx?state=on または /ch?idx=1&state=on 受信からON実行までの待ち時間）</label>");
     client.print("<input type='number' step='1' min='0' name='ptt_delay_ms' value='");
     client.print(pttDelayMs);
     client.println("'>");
@@ -386,16 +392,16 @@ void sendStatusJson(EthernetClient& client) {
     client.println("Content-Type: application/json");
     client.println("Connection: close");
     client.println();
-    client.print("{\"lna\":");
-    client.print(outState[IDX_LNA] ? "true" : "false");
+    client.print("{\"power\":");
+    client.print(outState[IDX_POWER] ? "true" : "false");
+    client.print(",\"power_pending\":");
+    client.print(pwrOnPending ? "true" : "false");
     client.print(",\"ptt\":");
     client.print(outState[IDX_PTT] ? "true" : "false");
     client.print(",\"ptt_pending\":");
     client.print(pttOnPending ? "true" : "false");
-    client.print(",\"power\":");
-    client.print(outState[IDX_PWR] ? "true" : "false");
-    client.print(",\"power_pending\":");
-    client.print(pwrOnPending ? "true" : "false");
+    client.print(",\"tx_active\":");
+    client.print(txActive ? "true" : "false");
     client.print(",\"power_delay_ms\":");
     client.print(powerDelayMs);
     client.print(",\"ptt_delay_ms\":");
@@ -423,28 +429,50 @@ void handleClient(EthernetClient& client) {
 
     Serial.println("[HTTP] " + reqLine);
 
-    if (reqLine.startsWith("GET /power")) {
-        // Raspberry Pi5 からの12V電源制御要求
+    if (reqLine.startsWith("GET /tx")) {
+        // shonan-android からのTX開始/終了通知（PTTのみ切り替える）
         if (reqLine.indexOf("state=on") >= 0) {
-            requestPowerOn();
+            txStart();
         } else if (reqLine.indexOf("state=off") >= 0) {
-            requestPowerOff();
+            txStop();
         }
-        sendPlain(client, outState[IDX_PWR] ? "PWR_ON" : (pwrOnPending ? "PWR_PENDING" : "PWR_OFF"));
+        sendPlain(client, (outState[IDX_PTT] || pttOnPending) ? "TX" : "RX");
 
-    } else if (reqLine.startsWith("GET /ptt")) {
-        // Raspberry Pi5 からのPTT制御要求
-        if (reqLine.indexOf("state=on") >= 0) {
-            requestPttOn();
-        } else if (reqLine.indexOf("state=off") >= 0) {
-            requestPttOff();
+    } else if (reqLine.startsWith("GET /toggle")) {
+        // ステータス画面のON/OFFボタン用（/ch と同じ遅延ON・即時OFFロジックを適用）
+        long ch = -1;
+        if (getQueryLong(reqLine, "ch", ch)) {
+            if (ch == IDX_POWER) {
+                if (outState[IDX_POWER] || pwrOnPending) requestPowerOff();
+                else requestPowerOn();
+            } else if (ch == IDX_PTT) {
+                if (outState[IDX_PTT] || pttOnPending) requestPttOff();
+                else requestPttOn();
+            }
         }
-        sendPlain(client, outState[IDX_PTT] ? "PTT_ON" : (pttOnPending ? "PTT_PENDING" : "PTT_OFF"));
+        sendRedirect(client, "/");
+
+    } else if (reqLine.startsWith("GET /ch")) {
+        // 個別チャンネルの明示的ON/OFF指定（Shonan_Lite-RasPI5 GUI起動/終了時の
+        // GPIO26(idx=0, POWER)制御用。ON要求は遅延後に反映、OFFは即時）
+        long ch = -1;
+        getQueryLong(reqLine, "idx", ch);
+        if (ch == IDX_POWER) {
+            if (reqLine.indexOf("state=on") >= 0) requestPowerOn();
+            else if (reqLine.indexOf("state=off") >= 0) requestPowerOff();
+        } else if (ch == IDX_PTT) {
+            if (reqLine.indexOf("state=on") >= 0) requestPttOn();
+            else if (reqLine.indexOf("state=off") >= 0) requestPttOff();
+        }
+        bool on = (ch == IDX_POWER) ? (outState[IDX_POWER] || pwrOnPending)
+                : (ch == IDX_PTT)   ? (outState[IDX_PTT] || pttOnPending)
+                : false;
+        sendPlain(client, on ? "ON" : "OFF");
 
     } else if (reqLine.startsWith("GET /config/delay")) {
-        long pttMs = -1;
         String pwrSecStr;
-        if (getQueryStr(reqLine, "pwr_delay_sec", pwrSecStr)) {
+        long pttMs = -1;
+        if (getQueryStr(reqLine, "power_delay_sec", pwrSecStr)) {
             float pwrSec = pwrSecStr.toFloat();
             if (pwrSec >= 0) {
                 uint32_t newPwrMs = (uint32_t)(pwrSec * 1000.0f + 0.5f);
@@ -481,23 +509,6 @@ void handleClient(EthernetClient& client) {
     } else if (reqLine.startsWith("GET /config")) {
         sendConfigPage(client);
 
-    } else if (reqLine.startsWith("GET /tx")) {
-        // tanzawa-android からのTX開始/終了通知（旧互換）
-        if (reqLine.indexOf("state=on") >= 0) {
-            txStart();
-        } else if (reqLine.indexOf("state=off") >= 0) {
-            txStop();
-        }
-        sendPlain(client, (outState[IDX_PTT] || pttOnPending) ? "TX" : "RX");
-
-    } else if (reqLine.startsWith("GET /toggle")) {
-        // 手動デバッグ用（個別チャンネルのトグル）
-        long ch = -1;
-        if (getQueryLong(reqLine, "ch", ch)) {
-            toggleOutput((int)ch);
-        }
-        sendRedirect(client, "/");
-
     } else if (reqLine.startsWith("GET /api/status")) {
         sendStatusJson(client);
 
@@ -525,10 +536,18 @@ void setup() {
     pinMode(PIN_ONBOARD_LED, OUTPUT);
     digitalWrite(PIN_ONBOARD_LED, LOW);
 
-    for (int i = 0; i < 3; i++) {
+    for (int i = 0; i < 2; i++) {
         pinMode(PIN_OUT[i], OUTPUT);
-        applyOutput(i);   // 起動時状態を反映（LNA=ON, PTT/12V=OFF、LED=OFF）
+        applyOutput(i);   // 起動時状態を反映（POWER/PTTともOFF、LED=OFF）
     }
+
+    // W5500ハードリセット（データシート上は最小500us Lowで足りるが、
+    // 電源投入直後のRCランプアップと余裕を見て10ms Low→50ms待機とする）。
+    pinMode(PIN_RST, OUTPUT);
+    digitalWrite(PIN_RST, LOW);
+    delay(10);
+    digitalWrite(PIN_RST, HIGH);
+    delay(50);
 
     Ethernet.init(PIN_CS);
 

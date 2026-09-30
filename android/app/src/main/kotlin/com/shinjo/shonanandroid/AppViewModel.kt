@@ -12,6 +12,7 @@ import com.shinjo.shonanandroid.diagnostics.FileLogger
 import com.shinjo.shonanandroid.dvbs2.PlutoTuner
 import com.shinjo.shonanandroid.dvbs2.RssiNativeSession
 import com.shinjo.shonanandroid.rx.RxController
+import com.shinjo.shonanandroid.ssbfm.Esp32PttClient
 import com.shinjo.shonanandroid.ssbfm.SsbFmController
 import com.shinjo.shonanandroid.tx.TxController
 import com.shinjo.shonanandroid.tx.TxNetworkStats
@@ -51,6 +52,9 @@ fun formatRssiValue(rssi: Double): String =
 
 /** libiio IIODの既定TCPポート。 */
 private const val IIOD_PORT = 30431
+
+/** アプリ起動からPA/PTTコントローラの12V電源をONにするまでの待ち(Pi5版と同じ5秒)。 */
+private const val PTT_CONTROLLER_POWER_ON_DELAY_MS = 5_000L
 
 /**
  * libiioの`iio_create_context`は到達不能なIPに対してネイティブクラッシュ(SIGSEGV)する
@@ -140,6 +144,36 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     init {
         txController.onError = { txError = it }
         rxController.onError = { rxError = it }
+        // アプリ起動から5秒後に、PA/PTTコントローラ経由で12V電源(Pluto含む)をONにする(Pi5版と同じ)。
+        viewModelScope.launch {
+            delay(PTT_CONTROLLER_POWER_ON_DELAY_MS)
+            notifyPttController("POWER on") { Esp32PttClient.setChannel(it, Esp32PttClient.CHANNEL_POWER, on = true) }
+        }
+    }
+
+    /**
+     * PA/PTTコントローラ(ESP32+W5500)へ通知する。設定1タブの「PA/PTTコントローラを使う」がOFFなら何もしない。
+     * 未接続・応答なしでもDATVの送受信は妨げず、結果はログにだけ残す。
+     */
+    private suspend fun notifyPttController(label: String, call: (String) -> Result<String>) {
+        val host = ssbFm.settings.activePttControllerHost
+        if (host.isEmpty()) return
+        val result = withContext(Dispatchers.IO) { call(host) }
+        FileLogger.log("PTT_CTRL", "$label host=$host result=${result.exceptionOrNull() ?: result.getOrNull()}")
+    }
+
+    /**
+     * 画面上部の「終了」: SSB/FM・DATVの送信を止め、PA/PTTコントローラのPTTと12V電源(Pluto含む)を
+     * OFFにしてからプロセスを終了する(Pi5版のアプリ終了と同じ順序)。ESP32が応答しなくても終了する。
+     */
+    fun quitApp() {
+        if (isTransmitting) txController.stop()
+        viewModelScope.launch {
+            ssbFm.stopAndWait()
+            notifyPttController("TX off") { Esp32PttClient.notifyTx(it, on = false) }
+            notifyPttController("POWER off") { Esp32PttClient.setChannel(it, Esp32PttClient.CHANNEL_POWER, on = false) }
+            android.os.Process.killProcess(android.os.Process.myPid())
+        }
     }
 
     fun startSsbFm() {
@@ -166,6 +200,9 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                 ssbFm.stopAndWait()
                 if (!preparePlutoTx()) return@launch
                 if (!tunePluto(isTx = true)) return@launch
+                // PA/PTTコントローラへDATVの送信開始を通知する(ESP32側で設定した遅延の後にPTT ON)。
+                // 応答が無くても送信は止めない(Pi5版と同じ)。
+                notifyPttController("TX on") { Esp32PttClient.notifyTx(it, on = true) }
                 txController.start(txSettings ?: settings)
                 isTransmitting = true
             } finally {
@@ -177,6 +214,8 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     fun stopTX() {
         txController.stop()
         isTransmitting = false
+        // 送信を止めてからPA/PTTコントローラへ送信終了を通知する(PTTは即時OFF)。
+        viewModelScope.launch { notifyPttController("TX off") { Esp32PttClient.notifyTx(it, on = false) } }
     }
 
     fun startRX() {
@@ -465,4 +504,18 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun clearRssiRestrictionMessage() { rssiRestrictionMessage = null }
+
+    override fun onCleared() {
+        // 「終了」ボタン以外でアプリが閉じられた時: PTTを確実にOFFにしてから12V電源(Pluto含む)をOFFにする
+        // (Pi5版と同じ順序)。viewModelScopeはここで取り消されるため、別スレッドで送る。
+        val host = ssbFm.settings.activePttControllerHost
+        if (host.isNotEmpty()) {
+            Thread {
+                Esp32PttClient.notifyTx(host, on = false)
+                val result = Esp32PttClient.setChannel(host, Esp32PttClient.CHANNEL_POWER, on = false)
+                FileLogger.log("PTT_CTRL", "POWER off host=$host result=${result.exceptionOrNull() ?: result.getOrNull()}")
+            }.start()
+        }
+        super.onCleared()
+    }
 }

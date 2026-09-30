@@ -288,7 +288,7 @@ fun HomeScreen(viewModel: AppViewModel) {
                 )
                 Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                     androidx.compose.material3.Button(
-                        onClick = { android.os.Process.killProcess(android.os.Process.myPid()) },
+                        onClick = { viewModel.quitApp() },
                         colors = androidx.compose.material3.ButtonDefaults.buttonColors(containerColor = Color(0xFFF05A45)),
                         shape = RoundedCornerShape(8.dp),
                     ) {
