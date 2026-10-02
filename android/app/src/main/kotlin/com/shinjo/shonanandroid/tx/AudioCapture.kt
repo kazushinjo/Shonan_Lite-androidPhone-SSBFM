@@ -23,6 +23,10 @@ class AudioCapture {
     /** マイク入力レベル(0f〜1f、RMSをフルスケールで正規化)。読み取りチャンクごとに通知。 */
     var onLevel: ((level: Float) -> Unit)? = null
 
+    /** 送信音量の倍率(1fで入力そのまま)。送信中にUIスレッドから変更され、録音スレッドで読む。 */
+    @Volatile
+    var gain: Float = 1f
+
     val sampleRate = 44100
     val channelCount = 1
 
@@ -99,6 +103,15 @@ class AudioCapture {
             }
             if (n <= 0) continue
 
+            // 送信音量の倍率を掛ける(飽和はクリップ)。レベル表示も調整後の値にする。
+            val currentGain = gain
+            if (currentGain != 1f) {
+                for (i in 0 until n) {
+                    val scaled = readBuf[i] * currentGain
+                    readBuf[i] = scaled.coerceIn(Short.MIN_VALUE.toFloat(), Short.MAX_VALUE.toFloat()).toInt().toShort()
+                }
+            }
+
             var sumSquares = 0.0
             for (i in 0 until n) sumSquares += readBuf[i].toDouble() * readBuf[i].toDouble()
             val rms = kotlin.math.sqrt(sumSquares / n)
@@ -122,5 +135,16 @@ class AudioCapture {
     companion object {
         /** AACの1フレームあたりサンプル数(AAC-LC固定)。 */
         const val SAMPLES_PER_AAC_FRAME = 1024
+
+        /**
+         * 送信音量(0〜100%)を倍率に変換する(iPad版AudioCapture.gain(forVolumePercent:)と同じ)。
+         * Pi5版の初期値80%を入力そのまま(1倍)とし、80%以下は比例して小さく(0%で無音)、
+         * 80%超は100%で2倍(+6dB)まで大きくする。端末内蔵マイクは録音ゲインを変えられない
+         * ことが多いため、サンプルに倍率を掛ける。
+         */
+        fun gainForVolumePercent(percent: Int): Float {
+            val p = percent.coerceIn(0, 100).toFloat()
+            return if (p <= 80f) p / 80f else 1f + (p - 80f) / 20f
+        }
     }
 }

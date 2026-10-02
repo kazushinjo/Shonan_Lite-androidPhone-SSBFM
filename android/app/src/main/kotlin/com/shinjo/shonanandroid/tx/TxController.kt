@@ -38,6 +38,11 @@ class TxController(context: Context, lifecycleOwner: LifecycleOwner) {
     private var usingColorBar = false
     private var usingPhoto = false
 
+    /** 送信音量(0〜100%)を変更する。送信中は即時反映する(送信画面のスライダーから呼ぶ)。 */
+    fun setTxAudioVolume(percent: Int) {
+        audioCapture.gain = AudioCapture.gainForVolumePercent(percent)
+    }
+
     fun start(settings: AppSettings) {
         if (isRunning) return
         usingColorBar = settings.useColorBarSource
@@ -103,6 +108,7 @@ class TxController(context: Context, lifecycleOwner: LifecycleOwner) {
             audioEncoder.onExtradata = { asc -> aacAsc = asc }
             audioEncoder.onEncodedFrame = { frame -> muxer?.writeAudioFrame(frame.payload, frame.presentationTimeUsec) }
             audioEncoder.start(audioCapture.sampleRate, audioCapture.channelCount, AUDIO_BITRATE_BPS)
+            audioCapture.gain = AudioCapture.gainForVolumePercent(settings.txAudioVolume)
             audioCapture.start()
         }
 

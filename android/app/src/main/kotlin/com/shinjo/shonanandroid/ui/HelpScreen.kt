@@ -254,11 +254,13 @@ private val helpSections = listOf(
         "背面カメラ(既定)・前面カメラ・写真(写真フォルダーから選択)・テストパターン(カラーバー)の"
             + "いずれかを選びます。ここで選んだ映像が「送信」タブでのプレビューと送信対象になります。"
             + "「写真」を選ぶと、写真に焼き込む「コールサイン」「備考」を入力できます。"
-            + "「マイク音声を送信」をONにすると、端末のマイク音声も一緒に送信します。",
+            + "「マイク音声を送信」をONにすると、端末のマイク音声も一緒に送信します。"
+            + "「送信」タブの「送信音量」スライダーでマイク音声の大きさを0〜100%で調整できます(初期値80%で入力そのまま、100%で2倍、送信中も即時反映)。",
         "Choose the rear camera (default), the front camera, a photo (picked from your photo folder), or the test "
             + "pattern (color bars). The selection here is used for the preview and transmission on the Transmit "
             + "tab. When \"Photo\" is chosen, you can enter a \"Callsign\" and \"Note\" that are burned into the "
-            + "photo. Turn on \"Transmit Mic Audio\" to send the device's microphone audio as well.",
+            + "photo. Turn on \"Transmit Mic Audio\" to send the device's microphone audio as well."
+            + " The \"TX Volume\" slider on the Transmit tab adjusts the microphone level from 0 to 100% (default 80% = unchanged, 100% = 2x), applied immediately even while transmitting.",
     ),
     HelpSection(
         "設定４(配信先)", "Config 4 (Stream Output)",

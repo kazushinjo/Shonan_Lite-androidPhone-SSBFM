@@ -44,6 +44,7 @@ import com.shinjo.shonanandroid.rx.RxVideoView
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlin.math.roundToInt
 
 private val CardBackground = Color(0xFF191D1F)
 private val DividerColor = Color(0xFF303538)
@@ -267,6 +268,7 @@ fun RxScreen(
                         colors = SliderDefaults.colors(thumbColor = Color(0xFFDDDDDD), activeTrackColor = StartColor),
                         modifier = Modifier.weight(1f),
                     )
+                    Text("${(settings.rxVolume * 100).roundToInt()}%", color = Color.White, fontSize = 12.sp, modifier = Modifier.width(40.dp))
                 }
 
                 Row(

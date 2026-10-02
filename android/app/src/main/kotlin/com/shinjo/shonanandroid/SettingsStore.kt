@@ -24,6 +24,7 @@ object SettingsStore {
         const val RX_LISTEN_PORT = "rxListenPort"
         const val RX_STATUS_PORT = "rxStatusPort"
         const val RX_VOLUME = "rxVolume"
+        const val TX_AUDIO_VOLUME = "txAudioVolume"
         const val USE_ON_DEVICE_DVBS2_RX = "useOnDeviceGRDVBS2Rx"
         const val DVBS2_ROLLOFF = "dvbs2Rolloff"
         const val USE_FRONT_CAMERA = "useFrontCamera"
@@ -60,6 +61,7 @@ object SettingsStore {
             // 受信音量は起動時に必ず初期値を優先する。保存済みの音量は
             // セッション中の変更には使うが、次回起動時には読み込まない。
             rxVolume = default.rxVolume,
+            txAudioVolume = prefs.getInt(Keys.TX_AUDIO_VOLUME, default.txAudioVolume).coerceIn(0, 100),
             // オンデバイス復調は起動時に必ずOFF(初期値)で始める。保存済みの値は
             // セッション中の変更には使うが、次回起動時には読み込まない。
             useOnDeviceGRDVBS2Rx = default.useOnDeviceGRDVBS2Rx,
@@ -93,6 +95,7 @@ object SettingsStore {
             putInt(Keys.RX_LISTEN_PORT, settings.rxListenPort)
             putInt(Keys.RX_STATUS_PORT, settings.rxStatusPort)
             putFloat(Keys.RX_VOLUME, settings.rxVolume)
+            putInt(Keys.TX_AUDIO_VOLUME, settings.txAudioVolume)
             putBoolean(Keys.USE_ON_DEVICE_DVBS2_RX, settings.useOnDeviceGRDVBS2Rx)
             putFloat(Keys.DVBS2_ROLLOFF, settings.dvbs2Rolloff.toFloat())
             putBoolean(Keys.USE_FRONT_CAMERA, settings.useFrontCamera)

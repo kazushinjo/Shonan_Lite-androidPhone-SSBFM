@@ -243,6 +243,11 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         isReceiving = false
     }
 
+    fun setTxAudioVolume(percent: Int) {
+        updateSettings { it.copy(txAudioVolume = percent.coerceIn(0, 100)) }
+        txController.setTxAudioVolume(percent)
+    }
+
     fun setRxVolume(volume: Float) {
         updateSettings { it.copy(rxVolume = volume) }
         rxController.setVolume(volume)

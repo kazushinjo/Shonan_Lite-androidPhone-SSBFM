@@ -145,6 +145,8 @@ data class AppSettings(
     var rxStatusPort: Int = NetworkDefaults.RX_STATUS_PORT,
     /** 受信音声のタブレット出力音量(0f〜1f)。 */
     var rxVolume: Float = 0.5f,
+    /** 送信音量(マイク音声の大きさ、0〜100%、Pi5版/iPad版と同じ)。80%で入力そのまま、100%で2倍(+6dB)。 */
+    var txAudioVolume: Int = 80,
     /** PlutoのRF IQをAndroid側で直接復調する実運用モード。 */
     var useOnDeviceGRDVBS2Rx: Boolean = false,
     /** オンデバイスDVB-S2復調のRRCロールオフ係数。 */
