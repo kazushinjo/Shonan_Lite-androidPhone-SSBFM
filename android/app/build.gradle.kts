@@ -22,8 +22,8 @@ android {
         applicationId = "com.shinjo.shonanandroid.ssbfm"
         minSdk = 26
         targetSdk = 35
-        versionCode = 1
-        versionName = "1.0"
+        versionCode = 2
+        versionName = "1.1"
 
         ndk {
             // third_party/ffmpeg-mpegts-install-arm64-v8a is arm64-v8a only
