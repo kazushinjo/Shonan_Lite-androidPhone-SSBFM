@@ -152,7 +152,7 @@ fun RxScreen(
                     // タブ化で縦幅が狭い中でもスクロールせず見える先頭に置く。
                     CompactFieldRow(
                         settings.t("状態", "State") to if (rx.isLocked) settings.t("接続中", "Connected") else settings.t("切断中", "Disconnected"),
-                        settings.t("パケット数", "Packets") to "${rx.continuityTracker.totalPackets}",
+                        settings.t("受信パケット数", "RX pkts") to "${rx.continuityTracker.totalPackets}",
                     )
                     CompactFieldRow(
                         settings.t("周波数", "Freq") to "${settings.effectiveLoHz / 1_000} kHz",
