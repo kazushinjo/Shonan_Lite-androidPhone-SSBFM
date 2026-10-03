@@ -36,8 +36,17 @@ data class RssiMeasurement(val frequencyHz: Long, val rssiDb: Double)
 
 /** RSSI測定でRSSI変動をピークと認めるしきい値(dB)。Shonan_Lite-winと同じ値。 */
 private const val RSSI_PEAK_THRESHOLD_DB = 3.0
-/** RSSI測定の1ステップの間隔(ms)。Shonan_Lite-winのSTEP_INTERVAL_MSと同じ。 */
-private const val RSSI_STEP_INTERVAL_MS = 150L
+/**
+ * RSSI測定の1ステップの間隔(ms)。★iPad版で試した結果に合わせて150→0にした(2026-10-04)。
+ * 以前の150msはRSSIを読んだ後の待ちで、測定値の安定には使われていなかった。受信LOを変えてから
+ * RSSIを読むまでの待ち(3ms)はネイティブ側(dvbs2_bridge.cppのRssiSession::measure)で入れる。
+ */
+private const val RSSI_STEP_INTERVAL_MS = 0L
+/**
+ * オンデバイス復調ON時、検索用の送信を始めてから測定を始めるまでの待ち(ms)。以前は3秒。
+ * 0にすると送信の立ち上がり中の一時的なピークを拾うことをiPad版で確認し、1秒にした。
+ */
+private const val RSSI_TX_SETTLE_MS = 1_000L
 /** RSSI測定がこの回数続けて失敗したら(接続し直しても回復しなければ)検索を中止する。 */
 private const val RSSI_MAX_CONSECUTIVE_FAILURES = 3
 /** RSSI画面でRXゲインを変更してからPlutoへ反映するまでの待ち(連打・長押しをまとめる)。 */
@@ -396,8 +405,8 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                         )
                         return@launch
                     }
-                    // ★TX起動直後は送信がまだ安定していないため、3秒待ってから測定を始める。
-                    delay(3_000)
+                    // ★TX起動直後は送信がまだ安定していないため、少し待ってから測定を始める。
+                    delay(RSSI_TX_SETTLE_MS)
                 }
                 if (!isPlutoReachable(plutoIp)) {
                     rssiStatus = settings.t("エラー: Plutoへ接続できません", "Error: cannot connect to Pluto")
@@ -463,7 +472,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                         }
                     }
                     frequencyHz += stepHz
-                    delay(RSSI_STEP_INTERVAL_MS)
+                    if (RSSI_STEP_INTERVAL_MS > 0) delay(RSSI_STEP_INTERVAL_MS)
                 }
             } finally {
                 // ★後片付けは全体をNonCancellableで包む。withContext(Dispatchers.IO + NonCancellable)だけだと、

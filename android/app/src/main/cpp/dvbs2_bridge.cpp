@@ -866,6 +866,8 @@ public:
         const auto *frequency = iio_channel_find_attr(loChan_, "frequency");
         const auto *rssi = iio_channel_find_attr(phyChan_, "rssi");
         if (!frequency || !rssi || iio_attr_write_longlong(frequency, frequencyHz) < 0) return NAN;
+        // 受信LOを変えてからRSSIを読むまでの待ち(前の周波数の値が残らないように。iPad版と同じ3ms)。
+        usleep(3000);
         char buffer[64]{};
         if (iio_attr_read_raw(rssi, buffer, sizeof(buffer)) <= 0) return NAN;
         return strtod(buffer, nullptr);

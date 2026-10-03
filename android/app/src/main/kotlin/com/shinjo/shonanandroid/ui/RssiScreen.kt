@@ -20,8 +20,12 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -92,7 +96,7 @@ fun RssiScreen(viewModel: AppViewModel) {
     var selectedRangeMhz by remember { mutableIntStateOf(DEFAULT_RANGE_MHZ) }
     var startKhz by remember { mutableLongStateOf(0L) }
     var endKhz by remember { mutableLongStateOf(0L) }
-    var stepKhzText by remember { mutableStateOf("100") }
+    var stepKhzText by remember { mutableStateOf("200") }
     var inputError by remember { mutableStateOf<String?>(null) }
     val restrictionMessage = viewModel.rssiRestrictionMessage
 
@@ -160,7 +164,19 @@ fun RssiScreen(viewModel: AppViewModel) {
                             textStyle = androidx.compose.ui.text.TextStyle(
                                 color = Color.White, fontSize = 15.sp, fontWeight = FontWeight.Bold, textAlign = TextAlign.End,
                             ),
-                            modifier = Modifier.width(100.dp),
+                            // 入力欄の右端の×で入力を全部消す(キーボードにはアプリからキーを足せないため)
+                            trailingIcon = {
+                                if (stepKhzText.isNotEmpty()) {
+                                    IconButton(onClick = { stepKhzText = "" }) {
+                                        Icon(
+                                            Icons.Filled.Clear,
+                                            contentDescription = settings.t("クリア", "Clear"),
+                                            tint = TextColor,
+                                        )
+                                    }
+                                }
+                            },
+                            modifier = Modifier.width(144.dp),
                         )
                         Text("kHz", color = TextColor, fontSize = 13.sp)
                     }
