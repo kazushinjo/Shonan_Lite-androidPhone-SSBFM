@@ -136,7 +136,7 @@ fun RssiScreen(viewModel: AppViewModel) {
                     val centerKhz = (settings.effectiveLoHz / 1000.0).roundToLong()
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text(
-                            settings.t("検索条件", "Search Conditions"),
+                            settings.t("測定条件", "Measurement Conditions"),
                             color = TitleCyan, fontSize = 13.sp, fontWeight = FontWeight.Bold,
                             modifier = Modifier.weight(1f),
                         )
@@ -221,7 +221,7 @@ fun RssiScreen(viewModel: AppViewModel) {
                         .padding(10.dp, 8.dp),
                     verticalArrangement = Arrangement.spacedBy(4.dp),
                 ) {
-                    Text(settings.t("検索結果", "Search Result"), color = TitleCyan, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                    Text(settings.t("測定結果", "Measurement Result"), color = TitleCyan, fontSize = 13.sp, fontWeight = FontWeight.Bold)
                     RssiGraph(
                         settings = settings,
                         startHz = viewModel.rssiSweepStartHz,
@@ -273,7 +273,7 @@ fun RssiScreen(viewModel: AppViewModel) {
             }
 
             Text(
-                viewModel.rssiStatus.ifEmpty { settings.t("検索待機中", "Search idle") },
+                viewModel.rssiStatus.ifEmpty { settings.t("測定待機中", "Measurement idle") },
                 color = TitleCyan, fontSize = 13.sp, fontWeight = FontWeight.Bold,
             )
         }

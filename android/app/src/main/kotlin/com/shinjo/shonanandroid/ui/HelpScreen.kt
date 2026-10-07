@@ -185,12 +185,12 @@ private val helpSections = listOf(
     HelpSection(
         "RSSI測定", "RSSI Measurement",
         "「周波数」タブの運用周波数を中心に、±5/10/20MHzの範囲をステップ(kHz)ごとに走査してPlutoのRSSIを測り、"
-            + "グラフと「最も強い周波数」を表示します(RSSIは値が小さいほど強い信号です)。検索方法は「連続」"
+            + "グラフと「最も強い周波数」を表示します(RSSIは値が小さいほど強い信号です)。測定方法は「連続」"
             + "(「測定停止」まで繰り返す)と「1回」から選べ、RXゲイン(AGC/手動)は「設定２」と共通です。"
             + "「設定１」タブのオンデバイス復調がONのときはテスト用で、「測定開始」と同時に自局もテストパターンで"
             + "送信し、自分の電波のRSSIを測ります(アッテネータを必ず接続すること)。OFFのときは送信せず、"
             + "相手局の電波のRSSIを測ります(相手局が送信していなければグラフが平らなのは正常です)。"
-            + "受信中は使えません。SSB/FMは測定開始時に自動で止めます。タブを離れると検索は止まります。"
+            + "受信中は使えません。SSB/FMは測定開始時に自動で止めます。タブを離れると測定は止まります。"
             + "(画像は、AGC OFF(手動60dB)・オンデバイス復調ONで1回測定した例。1273MHzで送信した自局のDATV信号が山として表れています)",
         "Sweeps ±5/10/20 MHz around the operating frequency (Frequency tab) in kHz steps, measures Pluto's RSSI, "
             + "and shows a graph and the strongest frequency (a smaller RSSI value means a stronger signal). Choose "
@@ -198,7 +198,7 @@ private val helpSections = listOf(
             + "demodulation (Config 1 tab) is on, this is a test mode: the app also transmits the test pattern and "
             + "measures its own signal (always connect an attenuator). When it is off, the app does not transmit and "
             + "measures the other station (a flat graph is normal if nobody is transmitting). It cannot run while "
-            + "receiving; SSB/FM is stopped automatically when measuring starts. Leaving the tab stops the search. "
+            + "receiving; SSB/FM is stopped automatically when measuring starts. Leaving the tab stops the measurement. "
             + "(The image shows one measurement with AGC off (manual 60 dB) and on-device demodulation on; the station's "
             + "own DATV signal transmitted at 1273 MHz appears as the peak.)",
     ),

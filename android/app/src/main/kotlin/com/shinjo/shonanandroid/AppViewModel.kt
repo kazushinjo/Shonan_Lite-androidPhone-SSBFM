@@ -365,7 +365,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         val centerHz = settings.effectiveLoHz
         val plutoIp = settings.txDestinationIP
         rssiIsScanning = true
-        rssiStatus = settings.t("検索中...", "Searching...")
+        rssiStatus = settings.t("測定中...", "Measuring...")
         rssiSweepStartHz = startHz
         rssiSweepEndHz = endHz
         rssiMeasurements = emptyList()
@@ -400,8 +400,8 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                     while (isPreparingTx) delay(100)
                     if (!isTransmitting) {
                         rssiRestrictionMessage = settings.t(
-                            "送信の自動開始に失敗したため、検索を中止しました。",
-                            "Automatic TX start failed, so the search was canceled.",
+                            "送信の自動開始に失敗したため、測定を中止しました。",
+                            "Automatic TX start failed, so the measurement was canceled.",
                         )
                         return@launch
                     }
@@ -451,8 +451,8 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                         FileLogger.log("RSSI", "measure failed freqHz=$frequencyHz consecutive=$consecutiveFailures")
                         if (consecutiveFailures >= RSSI_MAX_CONSECUTIVE_FAILURES) {
                             rssiStatus = settings.t(
-                                "エラー: Plutoとの通信が途切れたため検索を中止しました(Wi-Fi接続を確認してください)",
-                                "Error: lost connection to Pluto, search stopped (check the Wi-Fi connection)",
+                                "エラー: Plutoとの通信が途切れたため測定を中止しました(Wi-Fi接続を確認してください)",
+                                "Error: lost connection to Pluto, measurement stopped (check the Wi-Fi connection)",
                             )
                             break
                         }
@@ -466,8 +466,8 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                         if (sweepBest == null || rssi < sweepBest!!.rssiDb) {
                             sweepBest = measurement
                             rssiStatus = settings.t(
-                                "検索中: ${frequencyHz / 1000} kHz / RSSI ${formatRssiValue(rssi)}",
-                                "Searching: ${frequencyHz / 1000} kHz / RSSI ${formatRssiValue(rssi)}",
+                                "測定中: ${frequencyHz / 1000} kHz / RSSI ${formatRssiValue(rssi)}",
+                                "Measuring: ${frequencyHz / 1000} kHz / RSSI ${formatRssiValue(rssi)}",
                             )
                         }
                     }
@@ -492,8 +492,8 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                     }
                     rssiIsScanning = false
                     rssiJob = null
-                    if (rssiStatus.startsWith("検索中") || rssiStatus.startsWith("Searching")) {
-                        rssiStatus = settings.t("検索待機中", "Search idle")
+                    if (rssiStatus.startsWith("測定中") || rssiStatus.startsWith("Measuring")) {
+                        rssiStatus = settings.t("測定待機中", "Measurement idle")
                     }
                     FileLogger.log("RSSI", "stopped")
                 }
