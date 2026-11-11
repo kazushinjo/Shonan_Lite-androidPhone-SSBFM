@@ -14,20 +14,20 @@ class TsMuxerNative {
 
     private val handle: Long = nativeCreate()
 
-    /** sps/ppsはH264Encoderが最初のCSD-0から取得したAnnex B NALペイロード(スタートコードなし)。
-     *  aacAscを渡すと音声トラックも登録される(機器試験のカメラ+音声診断専用、本番Tx画面はnull=video-only)。
-     *  成功時null、失敗時エラーメッセージを返す。 */
+    /** codecConfigはH264EncoderがCSD-0から取得したコーデック設定(H.264はSPS/PPS、H.265は
+     *  VPS/SPS/PPS)のAnnex Bバイト列(スタートコード付き)。hevc=trueでH.265として多重化する。
+     *  aacAscを渡すと音声トラックも登録される。成功時null、失敗時エラーメッセージを返す。 */
     fun start(
-        sps: ByteArray,
-        pps: ByteArray,
+        codecConfig: ByteArray,
+        hevc: Boolean,
         width: Int,
         height: Int,
         aacAsc: ByteArray? = null,
         aacSampleRate: Int = 0,
         aacChannels: Int = 0,
-    ): String? = nativeStart(handle, sps, pps, width, height, aacAsc, aacSampleRate, aacChannels)
+    ): String? = nativeStart(handle, codecConfig, hevc, width, height, aacAsc, aacSampleRate, aacChannels)
 
-    /** H.264 Annex Bフレーム(1フレーム分、複数NALユニットを含みうる)を1つ書き込む。 */
+    /** H.264/H.265 Annex Bフレーム(1フレーム分、複数NALユニットを含みうる)を1つ書き込む。 */
     fun writeFrame(annexBFrame: ByteArray, presentationTimeUsec: Long, isKeyFrame: Boolean): Int =
         nativeWriteFrame(handle, annexBFrame, presentationTimeUsec, isKeyFrame)
 
@@ -46,8 +46,8 @@ class TsMuxerNative {
     private external fun nativeCreate(): Long
     private external fun nativeStart(
         handle: Long,
-        sps: ByteArray,
-        pps: ByteArray,
+        codecConfig: ByteArray,
+        hevc: Boolean,
         width: Int,
         height: Int,
         aacAsc: ByteArray?,

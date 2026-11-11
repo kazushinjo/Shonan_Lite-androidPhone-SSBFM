@@ -22,8 +22,12 @@ import java.util.concurrent.TimeUnit
 class H264Encoder {
     data class EncodedFrame(val annexBData: ByteArray, val presentationTimeUsec: Long, val isKeyframe: Boolean)
 
-    /** CSD-0(SPS/PPS)受信時に一度だけ呼ばれる。スタートコードなしの生NALペイロード。 */
-    var onSpsPps: ((sps: ByteArray, pps: ByteArray) -> Unit)? = null
+    /** CSD-0受信時に一度だけ呼ばれる。H.264はSPS/PPS、H.265はVPS/SPS/PPSを
+     *  Annex B(スタートコード付き)で並べたバイト列。 */
+    var onCodecConfig: ((codecConfig: ByteArray) -> Unit)? = null
+
+    /** trueならH.265(HEVC)で符号化する。start()の前に設定する。 */
+    var hevc: Boolean = false
     var onEncodedFrame: ((EncodedFrame) -> Unit)? = null
     var onError: ((String) -> Unit)? = null
 
@@ -32,12 +36,13 @@ class H264Encoder {
 
     private var codec: MediaCodec? = null
     private var didEmitSpsPps = false
+    private var codecConfig: ByteArray? = null
     private val drainExecutor = Executors.newSingleThreadExecutor()
     @Volatile private var draining = false
     private var drainFuture: Future<*>? = null
 
     fun start(width: Int, height: Int, fps: Int, bitrate: Int) {
-        val mimeType = MediaFormat.MIMETYPE_VIDEO_AVC
+        val mimeType = if (hevc) MediaFormat.MIMETYPE_VIDEO_HEVC else MediaFormat.MIMETYPE_VIDEO_AVC
         var lastError: String? = null
 
         for (candidate in encoderCandidates(mimeType)) {
@@ -61,6 +66,7 @@ class H264Encoder {
                 newCodec.start()
                 codec = newCodec
                 didEmitSpsPps = false
+                codecConfig = null
                 draining = true
                 drainFuture = drainExecutor.submit { drainLoop() }
                 return
@@ -73,7 +79,7 @@ class H264Encoder {
             }
         }
 
-        onError?.invoke("MediaCodec初期化に失敗しました: ${lastError ?: "対応H.264エンコーダがありません"}")
+        onError?.invoke("MediaCodec初期化に失敗しました: ${lastError ?: if (hevc) "対応H.265エンコーダがありません" else "対応H.264エンコーダがありません"}")
     }
 
     /** [inputColorFormat]で1フレーム分の生データを投入する。入力バッファ待ちで短時間ブロックしうる。 */
@@ -150,21 +156,44 @@ class H264Encoder {
         if (info.flags and MediaCodec.BUFFER_FLAG_CODEC_CONFIG != 0) {
             if (!didEmitSpsPps) {
                 val nals = splitAnnexB(bytes)
-                val sps = nals.firstOrNull { (it[0].toInt() and 0x1F) == 7 }
-                val pps = nals.firstOrNull { (it[0].toInt() and 0x1F) == 8 }
-                if (sps != null && pps != null) {
+                val required = if (hevc) listOf(32, 33, 34) else listOf(7, 8)
+                val found = required.map { type -> nals.firstOrNull { nalType(it) == type } }
+                if (found.all { it != null }) {
                     didEmitSpsPps = true
-                    onSpsPps?.invoke(sps, pps)
+                    val config = java.io.ByteArrayOutputStream()
+                    for (nal in found) {
+                        config.write(START_CODE)
+                        config.write(nal!!)
+                    }
+                    codecConfig = config.toByteArray()
+                    onCodecConfig?.invoke(codecConfig!!)
                 }
             }
             return
         }
 
         val isKeyframe = info.flags and MediaCodec.BUFFER_FLAG_KEY_FRAME != 0
-        onEncodedFrame?.invoke(EncodedFrame(bytes, info.presentationTimeUs, isKeyframe))
+        // H.265: 端末のエンコーダはVPS/SPS/PPSを最初のCSDでしか出さないことが多い。RXは
+        // 途中から視聴を始めるため、キーフレームの先頭にVPS/SPS/PPSが無ければ付け足す
+        // (Pi5版のx265 repeat-headers=1と同じ目的)。
+        val config = codecConfig
+        val frameBytes = if (hevc && isKeyframe && config != null &&
+            splitAnnexB(bytes).firstOrNull()?.let { nalType(it) } != 32
+        ) config + bytes else bytes
+        onEncodedFrame?.invoke(EncodedFrame(frameBytes, info.presentationTimeUs, isKeyframe))
     }
 
+    /** NALタイプ(H.264は先頭バイトの下位5bit、H.265は先頭バイトのbit1〜6)。 */
+    private fun nalType(nal: ByteArray): Int =
+        if (nal.isEmpty()) -1 else if (hevc) (nal[0].toInt() shr 1) and 0x3F else nal[0].toInt() and 0x1F
+
     companion object {
+        private val START_CODE = byteArrayOf(0, 0, 0, 1)
+
+        /** この端末にH.265(HEVC)で符号化できるエンコーダがあるか。 */
+        fun isHevcEncoderAvailable(): Boolean =
+            runCatching { encoderCandidates(MediaFormat.MIMETYPE_VIDEO_HEVC).isNotEmpty() }.getOrDefault(false)
+
         private data class EncoderCandidate(val codecName: String, val colorFormat: Int)
 
         private fun encoderCandidates(mimeType: String): List<EncoderCandidate> {

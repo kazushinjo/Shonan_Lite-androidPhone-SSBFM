@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Cross-builds a minimal FFmpeg (libavformat/libavcodec/libavutil only,
 # MPEG-TS muxer+demuxer + file protocol) for Android arm64-v8a, used by
-# ts_bridge (JNI) to mux/demux MPEG-TS carrying MediaCodec-encoded H.264 --
+# ts_bridge (JNI) to mux/demux MPEG-TS carrying MediaCodec-encoded H.264/H.265 --
 # the Android equivalent of the iOS port's ffmpeg.xcframework dependency
 # (see ios/Scripts/build_ffmpeg_xcframework.sh in this repo, and
 # ios/Shonan/TS/ffmpeg_ts_bridge.h for the C API this stack backs).
@@ -53,7 +53,9 @@ cd ffmpeg
   --enable-demuxer=mpegts \
   --enable-protocol=file \
   --enable-bsf=h264_mp4toannexb \
+  --enable-bsf=hevc_mp4toannexb \
   --enable-parser=h264 \
+  --enable-parser=hevc \
   --disable-network \
   --disable-programs \
   --disable-doc \

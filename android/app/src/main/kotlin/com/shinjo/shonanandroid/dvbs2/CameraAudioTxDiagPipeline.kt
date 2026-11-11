@@ -37,8 +37,7 @@ class CameraAudioTxDiagPipeline(context: Context, lifecycleOwner: LifecycleOwner
     private var isRunning = false
     private var muxerStarted = false
     private var encoderStarted = false
-    private var pendingSps: ByteArray? = null
-    private var pendingPps: ByteArray? = null
+    private var pendingCodecConfig: ByteArray? = null
     private var aacAsc: ByteArray? = null
     private var videoBitrateBps = 0
     private var audioBitrateBps = 0
@@ -55,8 +54,7 @@ class CameraAudioTxDiagPipeline(context: Context, lifecycleOwner: LifecycleOwner
         audioFrameCount = 0
         muxerStarted = false
         encoderStarted = false
-        pendingSps = null
-        pendingPps = null
+        pendingCodecConfig = null
         aacAsc = null
         actualVideoWidth = VIDEO_WIDTH
         actualVideoHeight = VIDEO_HEIGHT
@@ -72,21 +70,19 @@ class CameraAudioTxDiagPipeline(context: Context, lifecycleOwner: LifecycleOwner
         }
         muxer = newMuxer
 
-        videoEncoder.onSpsPps = videoSpsPps@{ sps, pps ->
+        videoEncoder.onCodecConfig = videoSpsPps@{ config ->
             if (!isRunning) return@videoSpsPps
-            pendingSps = sps
-            pendingPps = pps
+            pendingCodecConfig = config
         }
         videoEncoder.onEncodedFrame = videoFrame@{ frame ->
             if (!isRunning) return@videoFrame
             videoFrameCount++
             if (!muxerStarted) {
                 // SPS/PPSが揃う最初のキーフレームまでは破棄(本番Tx画面のTxController.ktと同じ方針)。
-                val sps = pendingSps
-                val pps = pendingPps
-                if (!frame.isKeyframe || sps == null || pps == null) return@videoFrame
+                val config = pendingCodecConfig
+                if (!frame.isKeyframe || config == null) return@videoFrame
                 val error = newMuxer.start(
-                    sps, pps, actualVideoWidth, actualVideoHeight,
+                    config, false, actualVideoWidth, actualVideoHeight,
                     aacAsc, audioCapture.sampleRate, audioCapture.channelCount,
                 )
                 if (error != null) {

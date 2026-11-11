@@ -205,6 +205,9 @@ data class AppSettings(
     /** FEC自動: trueのとき、シンボルレート・変調方式に合わせて、映像を[AUTO_FEC_TARGET_VIDEO_BPS]以上で
      *  送れる範囲で最も誤りに強いFECを自動で選ぶ([withAutoFec])。 */
     var fecAuto: Boolean = true,
+    // 送信映像をH.265(HEVC)で符号化する(false=H.264)。受信側はTSから自動判別する。
+    // 端末にH.265エンコーダが無いときはH.264で送る。
+    var useH265: Boolean = false,
     /** 最後に調べたPlutoが16APSK・32APSKを送れるか(Pluto+のFPGA版ファームか)。つながらないときはこの値を使う。
      *  無印Pluto・Pluto+の通常版はソフト変調でAPSKの振幅が潰れるため不可。 */
     var plutoApskCapable: Boolean = false,

@@ -29,6 +29,7 @@ internal fun runtimeText(text: String, language: AppLanguage): String {
         .replace("UDP送出に失敗しました", "UDP transmission failed")
         .replace("MediaCodec初期化に失敗しました", "Failed to initialize MediaCodec")
         .replace("対応H.264エンコーダがありません", "No supported H.264 encoder is available")
+        .replace("対応H.265エンコーダがありません", "No supported H.265 encoder is available")
         .replace("カメラの初期化に失敗しました", "Failed to initialize camera")
         .replace("マイクへのアクセスが許可されていません", "Microphone access is not permitted")
         .replace("AudioRecordの初期化に失敗しました", "Failed to initialize AudioRecord")

@@ -75,6 +75,8 @@ class RxController(private val context: Context) {
 
         val newDemuxer = TsDemuxerNative()
         newDemuxer.onFrame = { data, ptsUsec, _ -> displayDecoder.decode(data, ptsUsec) }
+        // 受信TSの映像がH.265ならデコーダをH.265に切り替える(TSのstream_typeで自動判別)。
+        newDemuxer.onVideoCodec = { hevc -> displayDecoder.setCodec(hevc) }
         newDemuxer.onAudioLevel = { level -> audioLevel = level }
         newDemuxer.onAudioPcm = { pcm, sampleRate, channelCount -> playPcm(pcm, sampleRate, channelCount) }
         demuxer = newDemuxer

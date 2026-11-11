@@ -175,6 +175,21 @@ private fun VideoSourceCard(viewModel: AppViewModel, modifier: Modifier) {
                 applyVideoSourceOption(viewModel, VideoSourceOption.COLOR_BAR)
             }
         }
+        val hevcAvailable = androidx.compose.runtime.remember { com.shinjo.shonanandroid.tx.H264Encoder.isHevcEncoderAvailable() }
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(
+                if (hevcAvailable) settings.t("H.265(HEVC)で送信", "Transmit in H.265 (HEVC)")
+                else settings.t("H.265(HEVC)で送信 ※この端末は非対応", "Transmit in H.265 (HEVC) - not supported on this device"),
+                color = if (hevcAvailable) Color(0xFFEEEEEE) else Color(0xFF888888),
+                fontSize = 13.sp,
+                modifier = Modifier.weight(1f),
+            )
+            Switch(
+                checked = settings.useH265 && hevcAvailable,
+                enabled = hevcAvailable,
+                onCheckedChange = { enabled -> viewModel.updateSettings { it.copy(useH265 = enabled) } },
+            )
+        }
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(
                 settings.t("マイク音声を送信", "Transmit Mic Audio"),

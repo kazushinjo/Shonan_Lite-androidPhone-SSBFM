@@ -120,6 +120,8 @@ struct Demuxer {
     jmethodID onFrameMethod = nullptr;
     jmethodID onAudioLevelMethod = nullptr;
     jmethodID onAudioPcmMethod = nullptr;
+    // 映像ストリームのコーデック通知(true=H.265)。Kotlin側に無ければnullptrのまま呼ばない。
+    jmethodID onVideoCodecMethod = nullptr;
 };
 
 // AACデコード結果(PCM)からRMSレベル(0f〜1f)を計算する。フォーマット非対応時はNANを返す。
@@ -370,7 +372,14 @@ retry_open:
         }
     }
 
-    const AVBitStreamFilter *bsfFilter = av_bsf_get_by_name("h264_mp4toannexb");
+    // 映像のコーデック(TSのstream_typeで判別: 0x1B=H.264、0x24=H.265)をKotlin側へ知らせ、
+    // 表示デコーダ(MediaCodec)の種類を合わせてもらう。
+    const bool videoIsHevc = fmtCtx->streams[demuxer->videoStreamIndex]->codecpar->codec_id == AV_CODEC_ID_HEVC;
+    if (demuxer->callbackObj && demuxer->onVideoCodecMethod) {
+        env->CallVoidMethod(demuxer->callbackObj, demuxer->onVideoCodecMethod, static_cast<jboolean>(videoIsHevc));
+    }
+    if (demuxer->bsfCtx) av_bsf_free(&demuxer->bsfCtx);
+    const AVBitStreamFilter *bsfFilter = av_bsf_get_by_name(videoIsHevc ? "hevc_mp4toannexb" : "h264_mp4toannexb");
     if (bsfFilter) {
         if (av_bsf_alloc(bsfFilter, &demuxer->bsfCtx) == 0) {
             avcodec_parameters_copy(demuxer->bsfCtx->par_in, fmtCtx->streams[demuxer->videoStreamIndex]->codecpar);
@@ -479,7 +488,7 @@ Java_com_shinjo_shonanandroid_ts_TsMuxerNative_nativeCreate(JNIEnv *env, jobject
 extern "C" JNIEXPORT jstring JNICALL
 Java_com_shinjo_shonanandroid_ts_TsMuxerNative_nativeStart(
         JNIEnv *env, jobject /* thiz */, jlong handle,
-        jbyteArray jSps, jbyteArray jPps, jint width, jint height,
+        jbyteArray jCodecConfig, jboolean hevc, jint width, jint height,
         jbyteArray jAacAsc, jint aacSampleRate, jint aacChannels) {
     auto *muxer = reinterpret_cast<Muxer *>(handle);
     if (!muxer) return env->NewStringUTF("無効なハンドルです");
@@ -510,24 +519,18 @@ Java_com_shinjo_shonanandroid_ts_TsMuxerNative_nativeStart(
 
     AVCodecParameters *params = muxer->videoStream->codecpar;
     params->codec_type = AVMEDIA_TYPE_VIDEO;
-    params->codec_id = AV_CODEC_ID_H264;
+    params->codec_id = hevc ? AV_CODEC_ID_HEVC : AV_CODEC_ID_H264;
     params->width = width;
     params->height = height;
 
-    // SPS/PPSをAnnex B(スタートコード付き)のままextradataへ格納する(iOS版と同一)。
-    static const uint8_t startCode[4] = {0, 0, 0, 1};
-    jsize spsLen = env->GetArrayLength(jSps);
-    jsize ppsLen = env->GetArrayLength(jPps);
-    int extradataLen = 4 + spsLen + 4 + ppsLen;
-    auto *extradata = static_cast<uint8_t *>(av_mallocz(extradataLen + AV_INPUT_BUFFER_PADDING_SIZE));
+    // コーデック設定(H.264はSPS/PPS、H.265はVPS/SPS/PPS)をAnnex B(スタートコード付き)の
+    // ままextradataへ格納する(iOS版と同一)。
+    jsize configLen = env->GetArrayLength(jCodecConfig);
+    auto *extradata = static_cast<uint8_t *>(av_mallocz(configLen + AV_INPUT_BUFFER_PADDING_SIZE));
     if (extradata) {
-        int offset = 0;
-        memcpy(extradata + offset, startCode, 4); offset += 4;
-        env->GetByteArrayRegion(jSps, 0, spsLen, reinterpret_cast<jbyte *>(extradata + offset)); offset += spsLen;
-        memcpy(extradata + offset, startCode, 4); offset += 4;
-        env->GetByteArrayRegion(jPps, 0, ppsLen, reinterpret_cast<jbyte *>(extradata + offset)); offset += ppsLen;
+        env->GetByteArrayRegion(jCodecConfig, 0, configLen, reinterpret_cast<jbyte *>(extradata));
         params->extradata = extradata;
-        params->extradata_size = offset;
+        params->extradata_size = configLen;
     }
 
     // 音声診断機能用: aac_ascが渡されていれば音声ストリームも登録する。
@@ -660,6 +663,11 @@ Java_com_shinjo_shonanandroid_ts_TsDemuxerNative_nativeCreate(JNIEnv *env, jobje
     demuxer->onFrameMethod = env->GetMethodID(cls, "onFrame", "([BJZ)V"); // (data, ptsUsec, isKeyFrame)
     demuxer->onAudioLevelMethod = env->GetMethodID(cls, "onAudioLevel", "(F)V");
     demuxer->onAudioPcmMethod = env->GetMethodID(cls, "onAudioPcm", "([BII)V");
+    demuxer->onVideoCodecMethod = env->GetMethodID(cls, "onVideoCodec", "(Z)V");
+    if (env->ExceptionCheck()) {
+        env->ExceptionClear();
+        demuxer->onVideoCodecMethod = nullptr;
+    }
 
     pthread_mutex_init(&demuxer->mutex, nullptr);
     pthread_cond_init(&demuxer->cond, nullptr);

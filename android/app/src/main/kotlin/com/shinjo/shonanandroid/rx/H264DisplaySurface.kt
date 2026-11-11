@@ -20,6 +20,11 @@ class H264DisplaySurface {
     var onError: ((String) -> Unit)? = null
 
     private var codec: MediaCodec? = null
+    private var surface: Surface? = null
+    private var configuredWidth = DEFAULT_WIDTH
+    private var configuredHeight = DEFAULT_HEIGHT
+    // 受信TSの映像コーデック(TsDemuxerNative.onVideoCodecで通知)。true=H.265。
+    @Volatile private var hevc = false
     private val drainExecutor = Executors.newSingleThreadExecutor()
     @Volatile private var draining = false
 
@@ -28,22 +33,29 @@ class H264DisplaySurface {
     private var inDropCount = 0
     private var inWindowStartMs = SystemClock.elapsedRealtime()
 
+    @Synchronized
     fun configure(surface: Surface, width: Int = DEFAULT_WIDTH, height: Int = DEFAULT_HEIGHT) {
         stop()
+        this.surface = surface
+        configuredWidth = width
+        configuredHeight = height
         try {
-            val format = MediaFormat.createVideoFormat(MediaFormat.MIMETYPE_VIDEO_AVC, width, height)
-            val newCodec = MediaCodec.createDecoderByType(MediaFormat.MIMETYPE_VIDEO_AVC)
+            val mime = if (hevc) MediaFormat.MIMETYPE_VIDEO_HEVC else MediaFormat.MIMETYPE_VIDEO_AVC
+            val format = MediaFormat.createVideoFormat(mime, width, height)
+            val newCodec = MediaCodec.createDecoderByType(mime)
             newCodec.configure(format, surface, null, 0)
             newCodec.start()
             codec = newCodec
             draining = true
             drainExecutor.execute { drainLoop() }
         } catch (e: Exception) {
-            onError?.invoke("デコーダの初期化に失敗しました: ${e.message}")
+            val name = if (hevc) "H.265" else "H.264"
+            onError?.invoke("デコーダの初期化に失敗しました(${name}): ${e.message}")
         }
     }
 
     /** 1フレーム分のH.264 Annex-Bデータ(複数NALユニットを含みうる)を投入する。 */
+    @Synchronized
     fun decode(annexBFrame: ByteArray, presentationTimeUsec: Long) {
         val codec = codec ?: return
         val inputIndex = try {
@@ -68,6 +80,16 @@ class H264DisplaySurface {
         codec.queueInputBuffer(inputIndex, 0, annexBFrame.size, presentationTimeUsec, 0)
     }
 
+    /** 受信映像のコーデックを切り替える(H.264⇔H.265)。変わったときだけデコーダを作り直す。 */
+    @Synchronized
+    fun setCodec(hevc: Boolean) {
+        if (this.hevc == hevc) return
+        this.hevc = hevc
+        val currentSurface = surface ?: return
+        if (codec != null) configure(currentSurface, configuredWidth, configuredHeight)
+    }
+
+    @Synchronized
     fun stop() {
         draining = false
         val codec = codec ?: return

@@ -8,12 +8,15 @@ package com.shinjo.shonanandroid.ts
  * TSバイト列を逐次パースする(呼び出し元スレッドをブロックしない)。
  */
 class TsDemuxerNative {
-    /** 1フレーム分のH.264 Annex Bデータを再構成できたときに呼ばれる。 */
+    /** 1フレーム分のH.264/H.265 Annex Bデータを再構成できたときに呼ばれる。 */
     var onFrame: ((annexBData: ByteArray, presentationTimeUsec: Long, isKeyFrame: Boolean) -> Unit)? = null
     /** 相手側音声(AAC)をデコードしたRMSレベル(0f〜1f)。 */
     var onAudioLevel: ((level: Float) -> Unit)? = null
     /** 相手側音声(AAC)をデコードしたS16interleaved PCM(AudioTrack再生用)。 */
     var onAudioPcm: ((pcm: ByteArray, sampleRate: Int, channelCount: Int) -> Unit)? = null
+
+    /** 映像ストリームのコーデックが分かったとき(ストリーム検出ごと)に呼ばれる。true=H.265。 */
+    var onVideoCodec: ((hevc: Boolean) -> Unit)? = null
 
     private val handle: Long = nativeCreate()
 
@@ -38,6 +41,12 @@ class TsDemuxerNative {
     @Suppress("unused")
     private fun onAudioPcm(pcm: ByteArray, sampleRate: Int, channelCount: Int) {
         onAudioPcm?.invoke(pcm, sampleRate, channelCount)
+    }
+
+    // ネイティブ側(ts_bridge.cpp、読み取りスレッド上)から呼び戻される。
+    @Suppress("unused")
+    private fun onVideoCodec(hevc: Boolean) {
+        onVideoCodec?.invoke(hevc)
     }
 
     private external fun nativeCreate(): Long

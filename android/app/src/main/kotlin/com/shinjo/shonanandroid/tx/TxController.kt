@@ -64,8 +64,10 @@ class TxController(context: Context, lifecycleOwner: LifecycleOwner) {
         sender.connect(host, port)
 
         muxerStarted = false
-        var pendingSps: ByteArray? = null
-        var pendingPps: ByteArray? = null
+        var pendingCodecConfig: ByteArray? = null
+        // 映像コーデック: H.265を選んでいても端末にH.265エンコーダが無ければH.264で送る。
+        val useHevc = settings.useH265 && H264Encoder.isHevcEncoderAvailable()
+        encoder.hevc = useHevc
         var aacAsc: ByteArray? = null
         var videoWidth = VIDEO_WIDTH
         var videoHeight = VIDEO_HEIGHT
@@ -79,18 +81,14 @@ class TxController(context: Context, lifecycleOwner: LifecycleOwner) {
             sender.send(datagram)
         }
 
-        encoder.onSpsPps = { sps, pps ->
-            pendingSps = sps
-            pendingPps = pps
-        }
+        encoder.onCodecConfig = { config -> pendingCodecConfig = config }
         encoder.onEncodedFrame = onEncodedFrame@{ frame ->
             if (!muxerStarted) {
-                // SPS/PPSが揃う最初のキーフレームまでは破棄(iOS版と同じ方針)。
-                val sps = pendingSps
-                val pps = pendingPps
-                if (!frame.isKeyframe || sps == null || pps == null) return@onEncodedFrame
+                // SPS/PPS(H.265はVPS/SPS/PPS)が揃う最初のキーフレームまでは破棄(iOS版と同じ方針)。
+                val config = pendingCodecConfig
+                if (!frame.isKeyframe || config == null) return@onEncodedFrame
                 val error = newMuxer.start(
-                    sps, pps, videoWidth, videoHeight,
+                    config, useHevc, videoWidth, videoHeight,
                     aacAsc, audioCapture.sampleRate, audioCapture.channelCount,
                 )
                 if (error != null) {
