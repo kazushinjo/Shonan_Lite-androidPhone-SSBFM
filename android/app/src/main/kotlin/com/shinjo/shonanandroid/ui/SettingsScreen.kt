@@ -90,6 +90,8 @@ fun SettingsScreen(viewModel: AppViewModel, onNavigate: (String) -> Unit) {
                 )
             }
 
+            PlutoInfoSection(settings)
+
             Text(settings.t("PA/PTTコントローラ(ESP32+W5500)", "PA/PTT Controller (ESP32+W5500)"), style = MaterialTheme.typography.titleMedium)
             val pttControllerEnabled = viewModel.ssbFm.settings.pttControllerEnabled
             Row(verticalAlignment = Alignment.CenterVertically) {

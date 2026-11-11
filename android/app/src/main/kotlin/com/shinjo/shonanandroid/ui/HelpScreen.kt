@@ -218,7 +218,8 @@ private val helpSections = listOf(
             + "「PA/PTTコントローラを使う」(既定ON)とIPアドレス(既定192.168.0.100)は、SSB/FMタブのPTTと"
             + "ESP32+W5500(hardware/W5500_PA_PTT_Control)の連携に使います(GET /tx?state=on|off)。"
             + "DATVの送信開始/終了でも同じ通知を送り、アプリ起動の5秒後に12V電源(Pluto含む)をON、"
-            + "「終了」でPTTと12V電源をOFFにします(GET /ch?idx=0&state=on|off)。",
+            + "「終了」でPTTと12V電源をOFFにします(GET /ch?idx=0&state=on|off)。"
+            + "「Pluto 情報」の「バージョン」「セッティング」「AD9361」を押すと、送信先のPlutoからファームの版・型式、Web UIのsettings.txt(送信時にアプリが書き込む値)、AD9361の周波数・ゲイン等17項目を読み取って表示します(読み取りのみで、Plutoには何も書き込みません)。",
         "Sets on-device demodulation (GNU Radio) and the PA/PTT controller (the display language is switched in "
             + "the top bar). Enabling on-device demodulation lets you run an RF loopback test with a single Pluto "
             + "(you transmit an image while receiving that same image). Doing so without an external attenuator can "
@@ -226,7 +227,8 @@ private val helpSections = listOf(
             + "(default: on) and its IP address (default: 192.168.0.100) link the SSB/FM tab's PTT to the ESP32+W5500 "
             + "board (hardware/W5500_PA_PTT_Control) via GET /tx?state=on|off. DATV TX start/stop sends the same "
             + "notifications, the 12 V power (including the Pluto) is turned ON 5 seconds after app start, and Quit "
-            + "turns PTT and the 12 V power OFF (GET /ch?idx=0&state=on|off).",
+            + "turns PTT and the 12 V power OFF (GET /ch?idx=0&state=on|off). "
+            + "Under \"Pluto Info\", \"Version\", \"Settings\" and \"AD9361\" read and show the firmware version and model of the Pluto at the TX destination, the Web UI settings.txt (the values this app writes on TX) and 17 AD9361 values such as frequencies and gains (read only; nothing is written to the Pluto).",
     ),
     HelpSection(
         "設定２", "Config 2",
