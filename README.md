@@ -31,7 +31,7 @@ whose functions are switched with tabs at the top, to fit a narrow phone screen.
 | 周波数 | DATVのバンドと周波数 |
 | 設定１ | オンデバイス復調(GNU Radio)・PA/PTTコントローラ |
 | 設定２ | DATVの受信感度(AGC/手動 0〜73dB)・送信出力(出力減衰量 -70〜0dB) |
-| 設定３ | DATVのシンボルレート・誤り訂正(1/2・3/5・8/9)・変調方式(QPSK・8PSK) |
+| 設定３ | DATVのシンボルレート・誤り訂正・変調方式(DVB-S2の全28組み合わせ: QPSK・8PSK・16APSK・32APSK) |
 | 設定４ | 映像ソース(カメラ/写真/テストパターン、マイク音声)・配信先(PlutoのIPアドレス、受信ポート) |
 | ヘルプ | アプリ内の操作説明とクレジット |
 
@@ -228,7 +228,7 @@ Switch with the tabs at the top (from left to right). The top bar has the langua
 | Frequency | DATV band and frequency |
 | Config 1 | On-device demodulation (GNU Radio), PA/PTT controller |
 | Config 2 | DATV receive gain (AGC or manual 0–73 dB) and transmit power (attenuation -70–0 dB) |
-| Config 3 | DATV symbol rate, FEC (1/2, 3/5, 8/9), and modulation (QPSK, 8PSK) |
+| Config 3 | DATV symbol rate, FEC and modulation (all 28 DVB-S2 combinations: QPSK, 8PSK, 16APSK, 32APSK) |
 | Config 4 | Video source (camera/photo/test pattern, mic audio) and stream output (Pluto IP address, receive ports) |
 | Help | In-app instructions and credits |
 

@@ -15,6 +15,7 @@
 #include <gnuradio/dvbs2rx/symbol_sync_cc.h>
 #include <gnuradio/dvbs2rx/plsync_cc.h>
 #include <gnuradio/dvbs2rx/xfecframe_demapper_cb.h>
+#include "APSKDemapper/shonan_apsk_demapper.h"
 #include <gnuradio/dvbs2rx/ldpc_decoder_bb.h>
 #include <gnuradio/dvbs2rx/bch_decoder_bb.h>
 #include <gnuradio/dvbs2rx/bbdescrambler_bb.h>
@@ -169,7 +170,15 @@ struct Dvbs2rxSession {
                                                 0xFFFFFFFFFFFFFFFFULL, 0xFFFFFFFFFFFFFFFFULL);
             plsync = plsyncBlock;
 
-            auto xfecframe_demapper = xfecframe_demapper_cb::make(FECFRAME_NORMAL, codeRate, constellation);
+            // ★16APSK/32APSKは同梱のgr-dvbs2rxでは復調できないため、APSKパッチを当てた
+            // デマッパー(APSKDemapper、名前空間gr::shonan_apsk)を使う。QPSK/8PSKは従来どおり。
+            gr::block_sptr xfecframe_demapper;
+            if (constellation == MOD_16APSK || constellation == MOD_32APSK) {
+                xfecframe_demapper = shonan::make_apsk_xfecframe_demapper(
+                    (int)FECFRAME_NORMAL, (int)codeRate, (int)constellation);
+            } else {
+                xfecframe_demapper = xfecframe_demapper_cb::make(FECFRAME_NORMAL, codeRate, constellation);
+            }
             auto ldpc_decoder = ldpc_decoder_bb::make(STANDARD_DVBS2, FECFRAME_NORMAL, codeRate,
                                                        constellation, OM_MESSAGE, INFO_OFF, 25, 0);
             auto bch_decoder = bch_decoder_bb::make(STANDARD_DVBS2, FECFRAME_NORMAL, codeRate, OM_MESSAGE, 0);

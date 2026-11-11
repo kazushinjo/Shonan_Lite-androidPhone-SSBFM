@@ -83,8 +83,8 @@ private val txSteps = listOf(
         "On the Frequency tab, set the band and frequency (it must match the receiving station's frequency).",
     ),
     HelpStep(
-        "「設定３」タブでシンボルレート・誤り訂正(1/2・3/5・8/9)・変調方式(QPSK・8PSK)を設定する(相手と一致させる)",
-        "On the Config 3 tab, set the symbol rate, FEC (1/2, 3/5, or 8/9), and modulation (QPSK or 8PSK); they must match the receiving station.",
+        "「設定３」タブでシンボルレート・誤り訂正・変調方式(QPSK・8PSK・16APSK・32APSK)を設定する(相手と一致させる)",
+        "On the Config 3 tab, set the symbol rate, FEC, and modulation (QPSK, 8PSK, 16APSK or 32APSK); they must match the receiving station.",
     ),
     HelpStep(
         "「設定４」タブの「配信先」でPluto TxのIPアドレスを確認する(初回のみ。送信はPlutoのUDP-TS受信ポート8282へ固定で送られます)",
@@ -241,11 +241,13 @@ private val helpSections = listOf(
     HelpSection(
         "設定３", "Config 3",
         "シンボルレート・誤り訂正(FEC)・変調方式を1画面で設定します。シンボルレートはプリセット"
-            + "(250k〜2000k)から選ぶか「直接入力」で100〜5000 kS/sを入力します。誤り訂正は1/2・3/5・8/9、"
-            + "変調方式はQPSK・8PSKから選び、コンステレーション(信号点配置)が表示されます。下段に組み合わせと"
+            + "(250k〜2000k)から選ぶか「直接入力」で100〜5000 kS/sを入力します。誤り訂正は"
+            + "DVB-S2規格で変調方式ごとに定められた値(QPSK: 1/4〜9/10、8PSK: 3/5〜9/10、16APSK: 2/3〜9/10、32APSK: 3/4〜9/10)、"
+            + "変調方式はQPSK・8PSK・16APSK・32APSKから選び、コンステレーション(信号点配置)が表示されます。下段に組み合わせと"
             + "帯域幅・ビットレートの目安を表示します。DATVの送信と受信は同じ設定を共有します。",
         "Sets the symbol rate, FEC, and modulation on one screen. Choose a symbol-rate preset (250k to 2000k) or "
-            + "tap Custom to enter 100–5000 kS/s. Choose FEC 1/2, 3/5, or 8/9 and QPSK or 8PSK; the constellation "
+            + "tap Custom to enter 100–5000 kS/s. Choose QPSK, 8PSK, 16APSK or 32APSK and FEC from "
+            + "the rates DVB-S2 defines for the modulation (QPSK: 1/4-9/10; 8PSK: 3/5-9/10; 16APSK: 2/3-9/10; 32APSK: 3/4-9/10); the constellation "
             + "is shown. The bottom line shows the combination and the estimated bandwidth and bit rate. DATV "
             + "transmit and receive share these settings.",
     ),

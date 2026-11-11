@@ -82,7 +82,7 @@ object SettingsStore {
             modulationScheme = prefs.getString(Keys.MODULATION_SCHEME, null)?.let { runCatching { ModulationScheme.valueOf(it) }.getOrNull() } ?: default.modulationScheme,
             useCustomLoFrequency = prefs.getBoolean(Keys.USE_CUSTOM_LO_FREQUENCY, default.useCustomLoFrequency),
             customLoFrequencyHz = prefs.getLong(Keys.CUSTOM_LO_FREQUENCY_HZ, default.customLoFrequencyHz),
-        )
+        ).let { it.copy(fecRate = it.modulationScheme.coerceFec(it.fecRate)) } // 変調方式に無いFECは補正
     }
 
     fun save(context: Context, settings: AppSettings) {

@@ -19,24 +19,38 @@ enum class AppLanguage(val displayName: String, val displayNameEnglish: String) 
  * DVB-S2のFEC符号化率。Plutoのtx_rf.sh互換パラメータも保持する。
  */
 enum class FECRate(val label: String, val plutoParameter: String) {
-    R1_2("1/2", "12"), R3_5("3/5", "35"), R8_9("8/9", "89"),
-
+    R1_4("1/4", "14"), R1_3("1/3", "13"), R2_5("2/5", "25"), R1_2("1/2", "12"),
+    R3_5("3/5", "35"), R2_3("2/3", "23"), R3_4("3/4", "34"), R4_5("4/5", "45"),
+    R5_6("5/6", "56"), R8_9("8/9", "89"), R9_10("9/10", "910"),
     ;
 
     val codeRate: Double
-        get() = when (this) {
-            R1_2 -> 1.0 / 2.0; R3_5 -> 3.0 / 5.0; R8_9 -> 8.0 / 9.0
+        get() {
+            val (num, den) = label.split("/").map { it.toDouble() }
+            return num / den
         }
 }
 
 /**
- * DVB-S2の変調方式。Pluto側のハードウェアパラメータでアプリからは制御しないが、
- * 運用メモとして記録・確認できるようにする(iOS版`ModulationScheme`の移植)。
- * 16APSKは運用対象外として削除した(保存済みの"APSK16"はSettingsStoreの読込時に
- * valueOfが失敗し、既定値のQPSKへ戻る)。
+ * DVB-S2の変調方式(iOS版`ModulationScheme`の移植)。送信時にPlutoのsettings.txtへ反映し、
+ * 受信(オンデバイス復調)では復調の期待値として使う。16APSK・32APSKの受信は
+ * APSKDemapper(app/src/main/cpp/APSKDemapper、APSKパッチを当てたgr-dvbs2rxのデマッパー)で行う。
  */
-enum class ModulationScheme(val label: String) {
-    QPSK("QPSK"), PSK8("8PSK"),
+enum class ModulationScheme(val label: String, val bitsPerSymbol: Int) {
+    QPSK("QPSK", 2), PSK8("8PSK", 3), APSK16("16APSK", 4), APSK32("32APSK", 5),
+    ;
+
+    /** DVB-S2規格(EN 302 307-1)でこの変調方式に定義されたFEC率(ノーマルフレーム)。全28組み合わせ。 */
+    val validFecRates: List<FECRate>
+        get() = when (this) {
+            QPSK -> FECRate.entries.toList()
+            PSK8 -> listOf(FECRate.R3_5, FECRate.R2_3, FECRate.R3_4, FECRate.R5_6, FECRate.R8_9, FECRate.R9_10)
+            APSK16 -> listOf(FECRate.R2_3, FECRate.R3_4, FECRate.R4_5, FECRate.R5_6, FECRate.R8_9, FECRate.R9_10)
+            APSK32 -> listOf(FECRate.R3_4, FECRate.R4_5, FECRate.R5_6, FECRate.R8_9, FECRate.R9_10)
+        }
+
+    /** fecがこの変調方式に無い場合は最も誤りに強い(先頭の)FEC率を返す。 */
+    fun coerceFec(fec: FECRate): FECRate = if (fec in validFecRates) fec else validFecRates.first()
 }
 
 /** Wi-Fiルータが運用する2バンド(iOS版`WiFiBand`の移植)。 */
@@ -202,10 +216,7 @@ data class AppSettings(
     /** RF伝送容量を超えない映像エンコーダ設定。余裕を残してTS輻輳を防ぐ。 */
     val effectiveVideoBitrateBps: Int
         get() {
-            val bitsPerSymbol = when (modulationScheme) {
-                ModulationScheme.QPSK -> 2.0
-                ModulationScheme.PSK8 -> 3.0
-            }
+            val bitsPerSymbol = modulationScheme.bitsPerSymbol.toDouble()
             // MPEG-TS/PES/H.264の実測オーバーヘッドを含め、RF容量の55%を映像目標にする。
             // 1Msym/s QPSK 3/5では映像約660kbps、TS実測約0.8〜0.9Mbpsを目安とする。
             val safeCapacity = effectiveOperationalSymbolRateMsps * 1_000_000.0 * bitsPerSymbol * fecRate.codeRate * 0.55

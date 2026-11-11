@@ -66,12 +66,6 @@ private fun codeRateOf(rate: FECRate): Double {
     return num.toDouble() / den
 }
 
-private val ModulationScheme.bitsPerSymbol: Int
-    get() = when (this) {
-        ModulationScheme.QPSK -> 2
-        ModulationScheme.PSK8 -> 3
-    }
-
 /**
  * DVB-S2の変調パラメータ(シンボルレート・誤り訂正・変調方式)を1画面にまとめたタブ。
  * 3つとも送信側と受信側で一致させる必要があり、組み合わせ(Mod-Cod)として見比べられるよう
@@ -96,7 +90,8 @@ fun ModCodSettingsScreen(viewModel: AppViewModel) {
             }, onCustom = { showCustomEntry = true })
             FecCard(settings, Modifier.weight(1f)) { rate -> viewModel.updateSettings { it.copy(fecRate = rate) } }
             ModulationCard(settings, Modifier.weight(1f)) { scheme ->
-                viewModel.updateSettings { it.copy(modulationScheme = scheme) }
+                // 今のFECがその変調方式に無い場合は最も誤りに強いFECへ合わせる
+                viewModel.updateSettings { it.copy(modulationScheme = scheme, fecRate = scheme.coerceFec(it.fecRate)) }
             }
         }
         SummaryBar(settings)
@@ -178,9 +173,13 @@ private fun FecCard(settings: AppSettings, modifier: Modifier, onSelect: (FECRat
     val current = settings.fecRate
     val overhead = (1 - codeRateOf(current)) * 100
     Card(settings.t("誤り訂正(FEC)", "FEC"), modifier) {
-        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-            FECRate.entries.forEach { rate ->
-                ChoiceButton(rate.label, rate == current, Modifier.weight(1f)) { onSelect(rate) }
+        // DVB-S2規格でその変調方式に定義されたFEC率(QPSKは11種類)を6個ずつ折り返して並べる
+        settings.modulationScheme.validFecRates.chunked(6).forEach { row ->
+            Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                row.forEach { rate ->
+                    ChoiceButton(rate.label, rate == current, Modifier.weight(1f)) { onSelect(rate) }
+                }
+                repeat(6 - row.size) { Spacer(Modifier.weight(1f)) }
             }
         }
         Text(
@@ -244,15 +243,23 @@ private fun ModulationCard(settings: AppSettings, modifier: Modifier, onSelect: 
             val r = minOf(size.width, size.height) / 2f - 8.dp.toPx()
             drawLine(AxisColor, Offset(cx - r - 4.dp.toPx(), cy), Offset(cx + r + 4.dp.toPx(), cy), strokeWidth = 1f)
             drawLine(AxisColor, Offset(cx, cy - r - 4.dp.toPx()), Offset(cx, cy + r + 4.dp.toPx()), strokeWidth = 1f)
-            val count = if (current == ModulationScheme.QPSK) 4 else 8
-            val startAngle = if (current == ModulationScheme.QPSK) Math.PI / 4 else 0.0
-            for (i in 0 until count) {
-                val a = startAngle + 2 * Math.PI * i / count
-                drawCircle(
-                    PointColor,
-                    radius = 4.dp.toPx(),
-                    center = Offset(cx + (cos(a) * r).toFloat(), cy - (sin(a) * r).toFloat()),
-                )
+            // (点の数, 半径の比, 最初の点の角度)。APSKはDVB-S2規格のリング構成(代表的な半径比)。
+            val rings = when (current) {
+                ModulationScheme.QPSK -> listOf(Triple(4, 1.0, Math.PI / 4))
+                ModulationScheme.PSK8 -> listOf(Triple(8, 1.0, 0.0))
+                ModulationScheme.APSK16 -> listOf(Triple(4, 0.32, Math.PI / 4), Triple(12, 1.0, Math.PI / 12))
+                ModulationScheme.APSK32 -> listOf(Triple(4, 0.19, Math.PI / 4), Triple(12, 0.54, Math.PI / 12), Triple(16, 1.0, 0.0))
+            }
+            val dot = if (current == ModulationScheme.APSK32) 3.dp.toPx() else 4.dp.toPx()
+            for ((count, scale, startAngle) in rings) {
+                for (i in 0 until count) {
+                    val a = startAngle + 2 * Math.PI * i / count
+                    drawCircle(
+                        PointColor,
+                        radius = dot,
+                        center = Offset(cx + (cos(a) * scale * r).toFloat(), cy - (sin(a) * scale * r).toFloat()),
+                    )
+                }
             }
         }
     }

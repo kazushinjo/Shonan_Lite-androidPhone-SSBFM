@@ -69,7 +69,9 @@ target_link_options(dvbs2_bridge PRIVATE "-Wl,--exclude-libs,ALL")
 set(GRDVBS2RX_STACK ${CMAKE_CURRENT_SOURCE_DIR}/../../../../third_party/gr-dvbs2rx-install-arm64-v8a)
 set(JNILIBS_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../jniLibs/arm64-v8a)
 
-add_library(dvbs2rx_bridge SHARED dvbs2rx_bridge.cpp)
+# APSKDemapper: 16APSK/32APSK用のデマッパー(gr-dvbs2rx 1.4.0+APSKパッチ、名前空間gr::shonan_apsk)。
+# 同梱のlibgnuradio-dvbs2rx.soは16/32APSKを復調できないため、この部品だけをブリッジに組み込む。
+add_library(dvbs2rx_bridge SHARED dvbs2rx_bridge.cpp APSKDemapper/shonan_apsk_demapper.cc)
 
 target_include_directories(dvbs2rx_bridge PRIVATE ${GRDVBS2RX_STACK}/include)
 
