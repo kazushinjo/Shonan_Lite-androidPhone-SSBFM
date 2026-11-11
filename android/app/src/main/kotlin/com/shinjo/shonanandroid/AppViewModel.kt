@@ -100,9 +100,41 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         private set
 
     fun updateSettings(update: (AppSettings) -> AppSettings) {
+        val oldHost = settings.txDestinationIP
         // FEC自動のときは、シンボルレート・変調方式などを変えるたびにFECを選び直す。
         settings = update(settings).withAutoFec()
         SettingsStore.save(getApplication(), settings)
+        // Plutoを替えたら、変調方式の選択肢(8PSKまで/32APSKまで)を調べ直す。
+        if (settings.txDestinationIP != oldHost) refreshPlutoCapability()
+    }
+
+    /** APSKから8PSKへ自動で変えたときのお知らせ(NavGraphがダイアログで表示し、閉じるとnull)。 */
+    var plutoCapabilityNotice by mutableStateOf<String?>(null)
+
+    /** Plutoのファームの版を読み、"FPGA"を含めば32APSKまで、それ以外は8PSKまでにする。
+     *  attempts回まで5秒おきに試し、読めなければ前回の判定(settings.plutoApskCapable)のまま。 */
+    fun refreshPlutoCapability(attempts: Int = 1) {
+        viewModelScope.launch {
+            repeat(attempts) { i ->
+                val capable = com.shinjo.shonanandroid.net.PlutoFirmwareChecker.isApskCapable(settings.txDestinationIP)
+                if (capable != null) {
+                    val before = settings
+                    val after = before.withPlutoCapability(capable)
+                    if (after != before) {
+                        settings = after
+                        SettingsStore.save(getApplication(), settings)
+                    }
+                    if (after.modulationScheme != before.modulationScheme) {
+                        plutoCapabilityNotice = settings.t(
+                            "接続中のPlutoは16APSK・32APSKを送れないため、変調方式を8PSKにしました(FECは${after.fecRate.label})。16APSK・32APSKはPluto+のFPGA版ファームで使えます。",
+                            "The connected Pluto cannot transmit 16APSK/32APSK, so the modulation was changed to 8PSK (FEC ${after.fecRate.label}). 16APSK/32APSK need the Pluto+ FPGA firmware.",
+                        )
+                    }
+                    return@launch
+                }
+                if (i + 1 < attempts) delay(5_000)
+            }
+        }
     }
 
     val txController = TxController(getApplication(), ProcessLifecycleOwner.get())
@@ -155,6 +187,8 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         txController.onError = { txError = it }
         rxController.onError = { rxError = it }
         // アプリ起動から5秒後に、PA/PTTコントローラ経由で12V電源(Pluto含む)をONにする(Pi5版と同じ)。
+        // 接続中のPlutoのファームを調べ、変調方式の選択肢(8PSKまで/32APSKまで)を決める。
+        refreshPlutoCapability(attempts = 6)
         viewModelScope.launch {
             delay(PTT_CONTROLLER_POWER_ON_DELAY_MS)
             notifyPttController("POWER on") { Esp32PttClient.setChannel(it, Esp32PttClient.CHANNEL_POWER, on = true) }

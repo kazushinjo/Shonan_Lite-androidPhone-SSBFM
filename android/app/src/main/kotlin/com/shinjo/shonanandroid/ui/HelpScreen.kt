@@ -243,7 +243,7 @@ private val helpSections = listOf(
         "シンボルレート・誤り訂正(FEC)・変調方式を1画面で設定します。シンボルレートはプリセット"
             + "(250k〜2000k)から選ぶか「直接入力」で100〜5000 kS/sを入力します。誤り訂正は"
             + "DVB-S2規格で変調方式ごとに定められた値(QPSK: 1/4〜9/10、8PSK: 3/5〜9/10、16APSK: 2/3〜9/10、32APSK: 3/4〜9/10)、"
-            + "変調方式はQPSK・8PSK・16APSK・32APSKから選び、コンステレーション(信号点配置)が表示されます。FEC画面の「自動」をONにすると(既定はON)、シンボルレートや変調方式を変えるたびに、映像を400 kbps以上で送れる範囲で最も誤りに強いFECが自動で選ばれます。相手局がFECを手で決めている場合は「自動」をOFFにして合わせてください。下段に組み合わせと"
+            + "変調方式はQPSK・8PSK・16APSK・32APSKから選び(16APSK・32APSKを選べるのは、Pluto+のFPGA版ファームにつないだときだけです(アプリがPlutoのファームの版を調べて切り替え、無印PlutoやPluto+の通常版では8PSKまでになります。16APSK・32APSKを選んだままそれらのPlutoにつなぐと、8PSKに変えてお知らせします))、コンステレーション(信号点配置)が表示されます。FEC画面の「自動」をONにすると(既定はON)、シンボルレートや変調方式を変えるたびに、映像を400 kbps以上で送れる範囲で最も誤りに強いFECが自動で選ばれます。相手局がFECを手で決めている場合は「自動」をOFFにして合わせてください。下段に組み合わせと"
             + "帯域幅・ビットレートの目安を表示します。DATVの送信と受信は同じ設定を共有します。",
         "Sets the symbol rate, FEC, and modulation on one screen. Choose a symbol-rate preset (250k to 2000k) or "
             + "tap Custom to enter 100–5000 kS/s. Choose QPSK, 8PSK, 16APSK or 32APSK and FEC from "

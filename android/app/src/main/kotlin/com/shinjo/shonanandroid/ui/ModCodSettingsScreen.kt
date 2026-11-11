@@ -76,6 +76,8 @@ private fun codeRateOf(rate: FECRate): Double {
 @Composable
 fun ModCodSettingsScreen(viewModel: AppViewModel) {
     val settings = viewModel.settings
+    // 画面を開いたら、接続中のPlutoのファームを調べ直す(8PSKまで/32APSKまで)。
+    androidx.compose.runtime.LaunchedEffect(Unit) { viewModel.refreshPlutoCapability() }
     var showCustomEntry by remember { mutableStateOf(false) }
 
     Column(
@@ -232,7 +234,11 @@ private fun ModulationCard(settings: AppSettings, modifier: Modifier, onSelect: 
     ) {
         Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
             ModulationScheme.entries.forEach { scheme ->
-                ChoiceButton(scheme.label, scheme == current, Modifier.weight(1f)) { onSelect(scheme) }
+                // 16APSK・32APSKはPluto+のFPGA版ファームのときだけ選べる。
+                val allowed = scheme in settings.availableModulationSchemes
+                ChoiceButton(scheme.label, scheme == current, Modifier.weight(1f).alpha(if (allowed) 1f else 0.4f)) {
+                    if (allowed) onSelect(scheme)
+                }
             }
         }
         Text(

@@ -205,6 +205,9 @@ data class AppSettings(
     /** FEC自動: trueのとき、シンボルレート・変調方式に合わせて、映像を[AUTO_FEC_TARGET_VIDEO_BPS]以上で
      *  送れる範囲で最も誤りに強いFECを自動で選ぶ([withAutoFec])。 */
     var fecAuto: Boolean = true,
+    /** 最後に調べたPlutoが16APSK・32APSKを送れるか(Pluto+のFPGA版ファームか)。つながらないときはこの値を使う。
+     *  無印Pluto・Pluto+の通常版はソフト変調でAPSKの振幅が潰れるため不可。 */
+    var plutoApskCapable: Boolean = false,
     var modulationScheme: ModulationScheme = ModulationScheme.QPSK,
 
     // 機器診断用周波数(★運用メモ)
@@ -235,6 +238,21 @@ data class AppSettings(
             val rates = modulationScheme.validFecRates
             return rates.firstOrNull { videoBudgetBps(it) >= AUTO_FEC_TARGET_VIDEO_BPS } ?: rates.last()
         }
+
+    /** 接続するPlutoで送れる変調方式(APSK対応なら全部、それ以外は8PSKまで)。 */
+    val availableModulationSchemes: List<ModulationScheme>
+        get() = if (plutoApskCapable) ModulationScheme.entries.toList()
+            else listOf(ModulationScheme.QPSK, ModulationScheme.PSK8)
+
+    /** Plutoの判定を反映した設定を返す。APSKを選んでいてそのPlutoで使えないときは8PSKへ変える(FECも選び直す)。 */
+    fun withPlutoCapability(capable: Boolean): AppSettings {
+        val updated = copy(plutoApskCapable = capable)
+        if (capable || (modulationScheme != ModulationScheme.APSK16 && modulationScheme != ModulationScheme.APSK32)) {
+            return updated
+        }
+        val psk8 = ModulationScheme.PSK8
+        return updated.copy(modulationScheme = psk8, fecRate = psk8.coerceFec(fecRate)).withAutoFec()
+    }
 
     /** FEC自動のとき、今のシンボルレート・変調方式に合うFECにした設定を返す。 */
     fun withAutoFec(): AppSettings = if (fecAuto && autoFecRate != fecRate) copy(fecRate = autoFecRate) else this

@@ -41,6 +41,7 @@ object SettingsStore {
         const val SYMBOL_RATE_MSPS = "symbolRateMsps"
         const val FEC_RATE = "fecRate"
         const val FEC_AUTO = "fecAuto"
+        const val PLUTO_APSK_CAPABLE = "plutoApskCapable"
         const val MODULATION_SCHEME = "modulationScheme"
         const val USE_CUSTOM_LO_FREQUENCY = "useCustomLoFrequency"
         const val CUSTOM_LO_FREQUENCY_HZ = "customLoFrequencyHz"
@@ -84,6 +85,7 @@ object SettingsStore {
             useCustomLoFrequency = prefs.getBoolean(Keys.USE_CUSTOM_LO_FREQUENCY, default.useCustomLoFrequency),
             customLoFrequencyHz = prefs.getLong(Keys.CUSTOM_LO_FREQUENCY_HZ, default.customLoFrequencyHz),
             fecAuto = prefs.getBoolean(Keys.FEC_AUTO, default.fecAuto),
+            plutoApskCapable = prefs.getBoolean(Keys.PLUTO_APSK_CAPABLE, default.plutoApskCapable),
         ).let { it.copy(fecRate = it.modulationScheme.coerceFec(it.fecRate)).withAutoFec() } // 変調方式に無いFECは補正
     }
 
@@ -114,6 +116,7 @@ object SettingsStore {
             putFloat(Keys.SYMBOL_RATE_MSPS, settings.symbolRateMsps.toFloat())
             putString(Keys.FEC_RATE, settings.fecRate.name)
             putBoolean(Keys.FEC_AUTO, settings.fecAuto)
+            putBoolean(Keys.PLUTO_APSK_CAPABLE, settings.plutoApskCapable)
             putString(Keys.MODULATION_SCHEME, settings.modulationScheme.name)
             putBoolean(Keys.USE_CUSTOM_LO_FREQUENCY, settings.useCustomLoFrequency)
             putLong(Keys.CUSTOM_LO_FREQUENCY_HZ, settings.customLoFrequencyHz)
