@@ -30,6 +30,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
@@ -88,7 +89,10 @@ fun ModCodSettingsScreen(viewModel: AppViewModel) {
             SymbolRateCard(settings, Modifier.weight(1.15f), onSelect = { msps ->
                 viewModel.updateSettings { it.copy(symbolRateMsps = msps) }
             }, onCustom = { showCustomEntry = true })
-            FecCard(settings, Modifier.weight(1f)) { rate -> viewModel.updateSettings { it.copy(fecRate = rate) } }
+            FecCard(
+                settings, Modifier.weight(1f),
+                onAuto = { viewModel.updateSettings { it.copy(fecAuto = !it.fecAuto) } },
+            ) { rate -> viewModel.updateSettings { it.copy(fecRate = rate) } }
             ModulationCard(settings, Modifier.weight(1f)) { scheme ->
                 // 今のFECがその変調方式に無い場合は最も誤りに強いFECへ合わせる
                 viewModel.updateSettings { it.copy(modulationScheme = scheme, fecRate = scheme.coerceFec(it.fecRate)) }
@@ -169,15 +173,20 @@ private fun SymbolRateCard(settings: AppSettings, modifier: Modifier, onSelect: 
 }
 
 @Composable
-private fun FecCard(settings: AppSettings, modifier: Modifier, onSelect: (FECRate) -> Unit) {
+private fun FecCard(settings: AppSettings, modifier: Modifier, onAuto: () -> Unit, onSelect: (FECRate) -> Unit) {
     val current = settings.fecRate
     val overhead = (1 - codeRateOf(current)) * 100
     Card(settings.t("誤り訂正(FEC)", "FEC"), modifier) {
+        // FEC自動: ONのときはシンボルレート・変調方式に合わせて自動で選ぶ(下のボタンは押しても変わらない)。
+        ChoiceButton(settings.t("自動", "Auto"), settings.fecAuto, Modifier.fillMaxWidth()) { onAuto() }
         // DVB-S2規格でその変調方式に定義されたFEC率(QPSKは11種類)を6個ずつ折り返して並べる
         settings.modulationScheme.validFecRates.chunked(6).forEach { row ->
-            Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                modifier = Modifier.alpha(if (settings.fecAuto) 0.55f else 1f),
+            ) {
                 row.forEach { rate ->
-                    ChoiceButton(rate.label, rate == current, Modifier.weight(1f)) { onSelect(rate) }
+                    ChoiceButton(rate.label, rate == current, Modifier.weight(1f)) { if (!settings.fecAuto) onSelect(rate) }
                 }
                 repeat(6 - row.size) { Spacer(Modifier.weight(1f)) }
             }

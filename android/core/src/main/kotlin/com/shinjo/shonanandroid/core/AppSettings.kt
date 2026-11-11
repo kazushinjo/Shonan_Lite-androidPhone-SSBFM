@@ -36,6 +36,9 @@ enum class FECRate(val label: String, val plutoParameter: String) {
  * 受信(オンデバイス復調)では復調の期待値として使う。16APSK・32APSKの受信は
  * APSKDemapper(app/src/main/cpp/APSKDemapper、APSKパッチを当てたgr-dvbs2rxのデマッパー)で行う。
  */
+/** FEC自動で確保する映像のビットレート(Pi5版・iOS版と同じ400kbps)。 */
+const val AUTO_FEC_TARGET_VIDEO_BPS = 400_000.0
+
 enum class ModulationScheme(val label: String, val bitsPerSymbol: Int) {
     QPSK("QPSK", 2), PSK8("8PSK", 3), APSK16("16APSK", 4), APSK32("32APSK", 5),
     ;
@@ -199,6 +202,9 @@ data class AppSettings(
 
     // FEC/変調(★運用メモ、Pluto側パラメータの記録用。実制御なし)
     var fecRate: FECRate = FECRate.R1_2,
+    /** FEC自動: trueのとき、シンボルレート・変調方式に合わせて、映像を[AUTO_FEC_TARGET_VIDEO_BPS]以上で
+     *  送れる範囲で最も誤りに強いFECを自動で選ぶ([withAutoFec])。 */
+    var fecAuto: Boolean = true,
     var modulationScheme: ModulationScheme = ModulationScheme.QPSK,
 
     // 機器診断用周波数(★運用メモ)
@@ -214,6 +220,25 @@ data class AppSettings(
         get() = if (useOnDeviceGRDVBS2Rx && symbolRateMsps > 0.5) 0.5 else symbolRateMsps
 
     /** RF伝送容量を超えない映像エンコーダ設定。余裕を残してTS輻輳を防ぐ。 */
+    /** [effectiveVideoBitrateBps]と同じ計算(バンドの上限は除く)で、指定したFECのときの映像ビットレート。 */
+    fun videoBudgetBps(rate: FECRate): Double {
+        val safeCapacity = effectiveOperationalSymbolRateMsps * 1_000_000.0 *
+            modulationScheme.bitsPerSymbol.toDouble() * rate.codeRate * 0.55
+        val audioReserve = if (transmitAudio) 64_000.0 else 0.0
+        return safeCapacity - audioReserve
+    }
+
+    /** 映像を[AUTO_FEC_TARGET_VIDEO_BPS]以上で送れるFECのうち、いちばん誤りに強いもの。
+     *  どれでも足りなければ、いちばん多く送れるFEC。 */
+    val autoFecRate: FECRate
+        get() {
+            val rates = modulationScheme.validFecRates
+            return rates.firstOrNull { videoBudgetBps(it) >= AUTO_FEC_TARGET_VIDEO_BPS } ?: rates.last()
+        }
+
+    /** FEC自動のとき、今のシンボルレート・変調方式に合うFECにした設定を返す。 */
+    fun withAutoFec(): AppSettings = if (fecAuto && autoFecRate != fecRate) copy(fecRate = autoFecRate) else this
+
     val effectiveVideoBitrateBps: Int
         get() {
             val bitsPerSymbol = modulationScheme.bitsPerSymbol.toDouble()

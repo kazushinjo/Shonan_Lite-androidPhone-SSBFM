@@ -100,7 +100,8 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         private set
 
     fun updateSettings(update: (AppSettings) -> AppSettings) {
-        settings = update(settings)
+        // FEC自動のときは、シンボルレート・変調方式などを変えるたびにFECを選び直す。
+        settings = update(settings).withAutoFec()
         SettingsStore.save(getApplication(), settings)
     }
 
