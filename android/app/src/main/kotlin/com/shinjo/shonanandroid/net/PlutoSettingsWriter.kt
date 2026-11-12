@@ -15,6 +15,7 @@ object PlutoSettingsWriter {
         runCatching {
             require(host.isNotBlank()) { "PlutoのIPアドレスが未設定です" }
             val merged = fetch(host).toMutableMap().apply {
+                put("callsign", plutoCallsign(settings.photoCallsign))
                 put("freq", "%.3f".format(settings.effectiveLoHz / 1_000_000.0))
                 put("mode", "DVBS2")
                 put("mod", settings.modulationScheme.label)
@@ -52,6 +53,17 @@ object PlutoSettingsWriter {
             if (index <= 0) null else line.substring(0, index) to line.substring(index + 1).trim()
         }.toMap()
     }
+
+    /**
+     * settings.txtへ書くコールサイン(送信TSのSDTサービス名になる)。映像オーバーレイ用の
+     * コールサインを使う。udpts.shは値を空白で区切り引用符なしでtsp/ffmpegの引数に渡すため、
+     * 英数字と「/」「-」が残る最初の語を大文字で使う(最大20文字)。無ければNOCALL
+     * (空だとtspが即終了し送信されない)。
+     */
+    internal fun plutoCallsign(overlayCallsign: String): String =
+        overlayCallsign.split(Regex("\\s+"))
+            .map { word -> word.uppercase().replace(Regex("[^A-Z0-9/-]"), "").take(20) }
+            .firstOrNull { it.isNotEmpty() } ?: "NOCALL"
 
     private fun enc(value: String): String = URLEncoder.encode(value, Charsets.UTF_8.name())
 }
