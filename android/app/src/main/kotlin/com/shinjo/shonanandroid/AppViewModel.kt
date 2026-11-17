@@ -211,8 +211,11 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
      * OFFにしてからプロセスを終了する(Pi5版のアプリ終了と同じ順序)。ESP32が応答しなくても終了する。
      */
     fun quitApp() {
+        val wasTransmitting = isTransmitting
         if (isTransmitting) txController.stop()
         viewModelScope.launch {
+            // 送信中に終了したときは、プロセスを終える前に Pluto の TX LO を止めておく
+            if (wasTransmitting) powerDownPlutoTxLoNow()
             ssbFm.stopAndWait()
             notifyPttController("TX off") { Esp32PttClient.notifyTx(it, on = false) }
             notifyPttController("POWER off") { Esp32PttClient.setChannel(it, Esp32PttClient.CHANNEL_POWER, on = false) }
@@ -258,6 +261,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     fun stopTX() {
         txController.stop()
         isTransmitting = false
+        powerDownPlutoTxLo()
         // 送信を止めてからPA/PTTコントローラへ送信終了を通知する(PTTは即時OFF)。
         viewModelScope.launch { notifyPttController("TX off") { Esp32PttClient.notifyTx(it, on = false) } }
     }
@@ -311,7 +315,9 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
             FileLogger.log("TUNE", "isPlutoReachable(IIOD:$IIOD_PORT) ip=$plutoIp result=$reachable")
             reachable && run {
                 val tuner = PlutoTuner(plutoIp)
-                val tuned = tuner.isOpen && tuner.tune(isTx, frequencyHz)
+                // 送信では、送信停止で止めた TX LO も入れ直す(止めたままだと電波が出ない)
+                val tuned = tuner.isOpen && tuner.tune(isTx, frequencyHz) &&
+                    (!isTx || tuner.setTxLoPowerdown(false))
                 FileLogger.log("TUNE", "PlutoTuner isOpen=${tuner.isOpen} tuned=$tuned freqHz=$frequencyHz")
                 tuner.close()
                 tuned
@@ -322,6 +328,25 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
             if (isTx) txError = message else rxError = message
         }
         return ok
+    }
+
+    /**
+     * Pluto の TX LO を止めて電波を止める。Pluto+ の FPGA 版などは送信(UDP-TS)を止めても
+     * Pluto の pluto_dvb が動き続け、電波が出たままになる(2026-11-18、SDR 版の実機で確認)。
+     * 次の送信開始で [tunePluto] が入れ直す。
+     */
+    private fun powerDownPlutoTxLo() {
+        viewModelScope.launch { powerDownPlutoTxLoNow() }
+    }
+
+    private suspend fun powerDownPlutoTxLoNow() {
+        val plutoIp = settings.txDestinationIP
+        val ok = withContext(Dispatchers.IO) {
+            runCatching {
+                PlutoTuner(plutoIp).use { it.isOpen && it.setTxLoPowerdown(true) }
+            }.getOrDefault(false)
+        }
+        FileLogger.log("TX_STOP", "Pluto TX LO powerdown ok=$ok ip=$plutoIp")
     }
 
     private suspend fun preparePlutoTx(): Boolean {

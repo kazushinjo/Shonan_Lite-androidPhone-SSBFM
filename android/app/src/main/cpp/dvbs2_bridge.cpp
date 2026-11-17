@@ -949,6 +949,17 @@ public:
         return frequency && iio_attr_write_longlong(frequency, frequencyHz) >= 0;
     }
 
+    /// TX LO(altvoltage1)の powerdown を書く(true で停止、false で有効)。
+    /// Pluto+ の FPGA 版などは送信(UDP-TS)を止めても Pluto の pluto_dvb が動き続け電波が
+    /// 出たままになるため、送信停止で止め、送信開始で入れ直す(2026-11-18、SDR 版の実機で確認)。
+    bool setTxLoPowerdown(bool down) {
+        if (!phy_) return false;
+        auto *loChan = iio_device_find_channel(phy_, "altvoltage1", true);
+        if (!loChan) return false;
+        const auto *powerdown = iio_channel_find_attr(loChan, "powerdown");
+        return powerdown && iio_attr_write_string(powerdown, down ? "1" : "0") >= 0;
+    }
+
     void close() {
         if (ctx_) iio_context_destroy(ctx_);
         ctx_ = nullptr;
@@ -978,6 +989,13 @@ Java_com_shinjo_shonanandroid_dvbs2_PlutoTuner_nativeTune(
         JNIEnv * /* env */, jobject /* thiz */, jlong handle, jboolean isTx, jlong frequencyHz) {
     auto *session = reinterpret_cast<PlutoTunerSession *>(handle);
     return session ? static_cast<jboolean>(session->tune(isTx, frequencyHz)) : JNI_FALSE;
+}
+
+extern "C" JNIEXPORT jboolean JNICALL
+Java_com_shinjo_shonanandroid_dvbs2_PlutoTuner_nativeSetTxLoPowerdown(
+        JNIEnv * /* env */, jobject /* thiz */, jlong handle, jboolean down) {
+    auto *session = reinterpret_cast<PlutoTunerSession *>(handle);
+    return session ? static_cast<jboolean>(session->setTxLoPowerdown(down)) : JNI_FALSE;
 }
 
 extern "C" JNIEXPORT void JNICALL
