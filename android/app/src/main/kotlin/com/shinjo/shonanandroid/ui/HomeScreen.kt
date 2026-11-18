@@ -168,6 +168,8 @@ fun HomeScreen(viewModel: AppViewModel) {
                     TextButton(onClick = {
                         if (viewModel.isTransmitting) viewModel.stopTX()
                         if (viewModel.isReceiving) viewModel.stopRX()
+                        // オンデバイス復調はテスト用なので、アプリ再起動でも起動時と同じく必ずOFFにする。
+                        viewModel.updateSettings { it.copy(useOnDeviceGRDVBS2Rx = false) }
                         viewModel.ssbFm.stop()
                         viewModel.ssbFm.onPlutoDatvRestarted()
                         plutoRebootInProgress = true
