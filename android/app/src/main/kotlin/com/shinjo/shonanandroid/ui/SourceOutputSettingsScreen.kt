@@ -87,7 +87,7 @@ private fun normalizeIpInput(raw: String): String =
     }.filter { it.isDigit() || it == '.' }.joinToString("")
 
 /**
- * 「設定４」タブ: 映像ソース(左)と配信先(右)を1画面にまとめたもの。
+ * 「映像,配信先」タブ: 映像ソース(左)と配信先(右)を1画面にまとめたもの。
  * 横向きの電話画面に収めるため上部バーは置かず、各カードの中を縦スクロールにする。
  */
 @Composable

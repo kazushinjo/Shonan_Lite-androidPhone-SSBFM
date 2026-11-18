@@ -243,7 +243,7 @@ fun RssiScreen(viewModel: AppViewModel) {
 
                     // 検索方法(連続=「測定停止」まで繰り返す / 1回=範囲の終わりで自動停止)とRXゲインを1行に置く。
                     // 検索方法を検索中に切り替えた場合は、実行中の周回が終わった時点から反映される。
-                    // RXゲインは設定２タブと同じ設定値を共有し、検索中でも変更できる。
+                    // RXゲインは送受ゲインタブと同じ設定値を共有し、検索中でも変更できる。
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                         PresetButton(settings.t("連続", "Repeat"), selected = settings.rssiRepeatScan, modifier = Modifier.widthIn(min = 60.dp)) {
                             viewModel.setRssiRepeatScan(true)

@@ -39,7 +39,7 @@ fun SettingsScreen(viewModel: AppViewModel, onNavigate: (String) -> Unit) {
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(settings.t("設定１", "Config 1")) },
+                title = { Text(settings.t("OD,ESP32,PLUTO", "OD,ESP32,PLUTO")) },
             )
         },
     ) { padding ->

@@ -37,10 +37,10 @@ private val sectionImages = mapOf(
     "受信" to listOf(R.drawable.help_rx),
     "RSSI測定" to listOf(R.drawable.help_rssi),
     "周波数" to listOf(R.drawable.help_frequency),
-    "設定１" to listOf(R.drawable.help_config1_top, R.drawable.help_config1_bottom),
-    "設定２" to listOf(R.drawable.help_config2),
-    "設定３" to listOf(R.drawable.help_config3),
-    "設定４(映像ソース)" to listOf(R.drawable.help_config4),
+    "OD,ESP32,PLUTO" to listOf(R.drawable.help_config1_top, R.drawable.help_config1_bottom),
+    "送受ゲイン" to listOf(R.drawable.help_config2),
+    "SR,FEC,MOD" to listOf(R.drawable.help_config3),
+    "映像,配信先(映像ソース)" to listOf(R.drawable.help_config4),
 )
 
 /** 画面画像の縦横比(撮影画像1086x492)。 */
@@ -49,13 +49,13 @@ private const val HELP_IMAGE_ASPECT = 1086f / 492f
 // ★SSB/FMで送受信するときの操作順序。
 private val ssbFmSteps = listOf(
     HelpStep(
-        "初回のみ「設定４」タブの「配信先」でPlutoのIPアドレスを確認する(SSB/FMもDATVと同じPlutoを使う)",
-        "First time only: check Pluto's IP address on the Config 4 tab (Stream Output); SSB/FM uses the same Pluto as DATV.",
+        "初回のみ「映像,配信先」タブの「配信先」でPlutoのIPアドレスを確認する(SSB/FMもDATVと同じPlutoを使う)",
+        "First time only: check Pluto's IP address on the Video, Output tab (Stream Output); SSB/FM uses the same Pluto as DATV.",
     ),
     HelpStep(
-        "PA/PTTコントローラ(ESP32+W5500)を使う場合は「設定１」タブで「PA/PTTコントローラを使う」をONにし、IPアドレスを入れる"
+        "PA/PTTコントローラ(ESP32+W5500)を使う場合は「OD,ESP32,PLUTO」タブで「PA/PTTコントローラを使う」をONにし、IPアドレスを入れる"
             + "(既定はON・192.168.0.100。使わない場合はOFFにする)",
-        "If you use the PA/PTT controller (ESP32+W5500), turn on \"Use the PA/PTT controller\" on the Config 1 tab and "
+        "If you use the PA/PTT controller (ESP32+W5500), turn on \"Use the PA/PTT controller\" on the OD,ESP32,PLUTO tab and "
             + "enter its IP address (default: on, 192.168.0.100). Turn it off if you do not use one.",
     ),
     HelpStep(
@@ -75,24 +75,24 @@ private val ssbFmSteps = listOf(
 // ★送信時に設定すべき項目の推奨順序(タブの並び順とは異なり、実際に必要な操作順)。
 private val txSteps = listOf(
     HelpStep(
-        "「設定４」タブの「映像ソース」で送信する映像(背面カメラ・前面カメラ・写真・テストパターン)を選ぶ",
-        "On the Config 4 tab (Video Source), choose what to transmit (rear camera, front camera, a photo, or the test pattern).",
+        "「映像,配信先」タブの「映像ソース」で送信する映像(背面カメラ・前面カメラ・写真・テストパターン)を選ぶ",
+        "On the Video, Output tab (Video Source), choose what to transmit (rear camera, front camera, a photo, or the test pattern).",
     ),
     HelpStep(
         "「周波数」タブでバンドと周波数を設定する(相手の受信周波数と一致させる)",
         "On the Frequency tab, set the band and frequency (it must match the receiving station's frequency).",
     ),
     HelpStep(
-        "「設定３」タブでシンボルレート・誤り訂正・変調方式(QPSK・8PSK・16APSK・32APSK)を設定する(相手と一致させる)",
-        "On the Config 3 tab, set the symbol rate, FEC, and modulation (QPSK, 8PSK, 16APSK or 32APSK); they must match the receiving station.",
+        "「SR,FEC,MOD」タブでシンボルレート・誤り訂正・変調方式(QPSK・8PSK・16APSK・32APSK)を設定する(相手と一致させる)",
+        "On the SR,FEC,MOD tab, set the symbol rate, FEC, and modulation (QPSK, 8PSK, 16APSK or 32APSK); they must match the receiving station.",
     ),
     HelpStep(
-        "「設定４」タブの「配信先」でPluto TxのIPアドレスを確認する(初回のみ。送信はPlutoのUDP-TS受信ポート8282へ固定で送られます)",
-        "On the Config 4 tab (Stream Output), check Pluto Tx's IP address (first time only). The stream always goes to Pluto's fixed UDP-TS port 8282.",
+        "「映像,配信先」タブの「配信先」でPluto TxのIPアドレスを確認する(初回のみ。送信はPlutoのUDP-TS受信ポート8282へ固定で送られます)",
+        "On the Video, Output tab (Stream Output), check Pluto Tx's IP address (first time only). The stream always goes to Pluto's fixed UDP-TS port 8282.",
     ),
     HelpStep(
-        "「設定２」タブで出力減衰量を設定する(0dBが最大出力、負の値ほど出力が下がる)",
-        "On the Config 2 tab, set the attenuation (0 dB is maximum output; more negative values reduce the output).",
+        "「送受ゲイン」タブで出力減衰量を設定する(0dBが最大出力、負の値ほど出力が下がる)",
+        "On the TX/RX Gain tab, set the attenuation (0 dB is maximum output; more negative values reduce the output).",
     ),
     HelpStep(
         "「送信」タブでプレビューを確認し「送信開始」を押す",
@@ -100,24 +100,24 @@ private val txSteps = listOf(
     ),
 )
 
-// ★受信時に設定すべき項目の推奨順序。オンデバイス復調(設定１タブ)の有無で受信経路が変わる点に注意。
+// ★受信時に設定すべき項目の推奨順序。オンデバイス復調(OD,ESP32,PLUTOタブ)の有無で受信経路が変わる点に注意。
 private val rxSteps = listOf(
     HelpStep(
-        "「周波数」「設定３」の各タブを、送信側と同じ値に設定する",
-        "Set the Frequency and Config 3 tabs to the same values as the transmitting station.",
+        "「周波数」「SR,FEC,MOD」の各タブを、送信側と同じ値に設定する",
+        "Set the Frequency and SR,FEC,MOD tabs to the same values as the transmitting station.",
     ),
     HelpStep(
-        "「設定１」タブで受信方式を選ぶ: オフ(既定)のままなら外部復調機器からのUDP-TSを「設定４」タブ「配信先」の"
+        "「OD,ESP32,PLUTO」タブで受信方式を選ぶ: オフ(既定)のままなら外部復調機器からのUDP-TSを「映像,配信先」タブ「配信先」の"
             + "TSポート/ステータスポートで待ち受ける。オンにするとPlutoのRF信号をAndroid自身が復調する"
             + "(送信と同時に行う場合はPluto保護のため必ずアッテネータを接続すること)",
-        "On the Config 1 tab, choose the receive path: leave on-device demodulation off (default) to listen for UDP-TS "
-            + "from an external demodulator on the TS/Status ports set on the Config 4 tab (Stream Output), or turn it on "
+        "On the OD,ESP32,PLUTO tab, choose the receive path: leave on-device demodulation off (default) to listen for UDP-TS "
+            + "from an external demodulator on the TS/Status ports set on the Video, Output tab (Stream Output), or turn it on "
             + "to have Android demodulate Pluto's RF signal itself (always connect an attenuator if you transmit at the "
             + "same time, to protect the Pluto).",
     ),
     HelpStep(
-        "「設定２」タブでAGC(自動)のままにするか、オフにして手動でゲインを設定する",
-        "On the Config 2 tab, keep AGC (auto) on, or turn it off and set the gain manually.",
+        "「送受ゲイン」タブでAGC(自動)のままにするか、オフにして手動でゲインを設定する",
+        "On the TX/RX Gain tab, keep AGC (auto) on, or turn it off and set the gain manually.",
     ),
     HelpStep(
         "「受信」タブで「受信開始」を押す。ロックすると自動で映像が全画面表示になる",
@@ -140,7 +140,7 @@ private val helpSections = listOf(
             + "・Sメーター: 受信中は信号の強さ(相対値)、送信中はマイクレベルを表示します。\n"
             + "・音量・スケルチ(FMのみ有効。USBではグレー表示)・マイク・RF利得(AGCのチェックで自動)・送信減衰(0〜89dB)。\n"
             + "・PTT: トグル動作です。押すと送信、もう一度押すと受信に戻ります(送信中はボタンが赤く「送信中」と表示)。\n"
-            + "・「設定１」タブで「PA/PTTコントローラを使う」がONのときは、送信開始時にESP32+W5500へ通知して150ms待ってから"
+            + "・「OD,ESP32,PLUTO」タブで「PA/PTTコントローラを使う」がONのときは、送信開始時にESP32+W5500へ通知して150ms待ってから"
             + "電波を出し、送信終了時は電波を止めてから通知します。ESP32が応答しない場合は、警告を表示してPA/PTTを切り替えないまま送信します。",
         "Transmits and receives USB and FM with Pluto (a port of Langstone-V2). It cannot run at the same time as "
             + "DATV TX/RX or RSSI measurement; tapping Start stops them first and then starts receiving. On start, the "
@@ -156,17 +156,17 @@ private val helpSections = listOf(
             + "- Volume, squelch (FM only; grayed out in USB), mic gain, RF gain (check AGC for automatic), and TX "
             + "attenuation (0 to 89 dB).\n"
             + "- PTT: toggle operation. Tap to transmit and tap again to return to receive (the button turns red and shows \"TX\" while transmitting).\n"
-            + "- When \"Use the PA/PTT controller\" is on (Config 1 tab), the app notifies the ESP32+W5500 at TX start, "
+            + "- When \"Use the PA/PTT controller\" is on (OD,ESP32,PLUTO tab), the app notifies the ESP32+W5500 at TX start, "
             + "waits 150 ms, then transmits; at TX end it stops transmitting first and then notifies. If the ESP32 "
             + "does not respond, the app shows a warning and transmits without switching the PA/PTT.",
     ),
     HelpSection(
         "送信", "Transmit",
-        "「設定４」タブの「映像ソース」で選んだ映像のプレビューを表示します。「送信開始」を押すと、現在の"
+        "「映像,配信先」タブの「映像ソース」で選んだ映像のプレビューを表示します。「送信開始」を押すと、現在の"
             + "周波数・シンボルレート・変調方式・誤り訂正・出力減衰量の設定でPlutoから送信します"
             + "(映像ソースの選択自体はこの画面では行いません)。送信映像はHD(1280x720)・30fpsです。"
             + "オンデバイス復調が有効な場合は「受信画面へ」ボタンで受信タブに移動できます。",
-        "Shows a preview of the source selected on the Config 4 tab (Video Source). Tap Start to transmit via "
+        "Shows a preview of the source selected on the Video, Output tab (Video Source). Tap Start to transmit via "
             + "Pluto with the current frequency, symbol rate, modulation, FEC, and attenuation settings "
             + "(the source itself is not selected here). The transmitted video is HD (1280x720) at 30 fps. "
             + "When on-device demodulation is enabled, the \"Receive Screen\" button opens the Receive tab.",
@@ -186,16 +186,16 @@ private val helpSections = listOf(
         "RSSI測定", "RSSI Measurement",
         "「周波数」タブの運用周波数を中心に、±5/10/20MHzの範囲をステップ(kHz)ごとに走査してPlutoのRSSIを測り、"
             + "グラフと「最も強い周波数」を表示します(RSSIは値が小さいほど強い信号です)。測定方法は「連続」"
-            + "(「測定停止」まで繰り返す)と「1回」から選べ、RXゲイン(AGC/手動)は「設定２」と共通です。"
-            + "「設定１」タブのオンデバイス復調がONのときはテスト用で、「測定開始」と同時に自局もテストパターンで"
+            + "(「測定停止」まで繰り返す)と「1回」から選べ、RXゲイン(AGC/手動)は「送受ゲイン」と共通です。"
+            + "「OD,ESP32,PLUTO」タブのオンデバイス復調がONのときはテスト用で、「測定開始」と同時に自局もテストパターンで"
             + "送信し、自分の電波のRSSIを測ります(アッテネータを必ず接続すること)。OFFのときは送信せず、"
             + "相手局の電波のRSSIを測ります(相手局が送信していなければグラフが平らなのは正常です)。"
             + "受信中は使えません。SSB/FMは測定開始時に自動で止めます。タブを離れると測定は止まります。"
             + "(画像は、AGC OFF(手動60dB)・オンデバイス復調ONで1回測定した例。1273MHzで送信した自局のDATV信号が山として表れています)",
         "Sweeps ±5/10/20 MHz around the operating frequency (Frequency tab) in kHz steps, measures Pluto's RSSI, "
             + "and shows a graph and the strongest frequency (a smaller RSSI value means a stronger signal). Choose "
-            + "Repeat (until Stop Measuring) or Once; the RX gain (AGC/manual) is shared with the Config 2 tab. When on-device "
-            + "demodulation (Config 1 tab) is on, this is a test mode: the app also transmits the test pattern and "
+            + "Repeat (until Stop Measuring) or Once; the RX gain (AGC/manual) is shared with the TX/RX Gain tab. When on-device "
+            + "demodulation (OD,ESP32,PLUTO tab) is on, this is a test mode: the app also transmits the test pattern and "
             + "measures its own signal (always connect an attenuator). When it is off, the app does not transmit and "
             + "measures the other station (a flat graph is normal if nobody is transmitting). It cannot run while "
             + "receiving; SSB/FM is stopped automatically when measuring starts. Leaving the tab stops the measurement. "
@@ -210,7 +210,7 @@ private val helpSections = listOf(
             + "DATV transmit and receive share this setting (the SSB/FM frequency is set separately on the SSB/FM tab).",
     ),
     HelpSection(
-        "設定１", "Config 1",
+        "OD,ESP32,PLUTO", "OD,ESP32,PLUTO",
         "オンデバイス復調(GNU Radio)の有効/無効と、PA/PTTコントローラを設定します(表示言語は上部バーで切り替えます)。"
             + "オンデバイス復調をONにすると、Pluto1台でRFのループバック試験ができます"
             + "(画像を送信しながら同時にその画像を受信します)。外部アッテネータなしで行うと"
@@ -231,7 +231,7 @@ private val helpSections = listOf(
             + "Under \"Pluto Info\", \"Version\", \"Settings\" and \"AD9361\" read and show the firmware version and model of the Pluto at the TX destination, the Web UI settings.txt (the values this app writes on TX) and 17 AD9361 values such as frequencies and gains (read only; nothing is written to the Pluto).",
     ),
     HelpSection(
-        "設定２", "Config 2",
+        "送受ゲイン", "TX/RX Gain",
         "DATVの受信感度と送信出力を設定します。受信感度は「自動(AGC)」をONにするとAGCがゲインを"
             + "自動調整し、OFFにすると0〜73dBの範囲で手動調整できます。下には受信のロック状態を表示します。"
             + "送信出力は出力減衰量を-70〜0dBの範囲で設定します(0dBが最大出力で、Plutoの送信出力減衰値としてそのまま適用されます)。",
@@ -241,7 +241,7 @@ private val helpSections = listOf(
             + "Pluto's TX attenuation).",
     ),
     HelpSection(
-        "設定３", "Config 3",
+        "SR,FEC,MOD", "SR,FEC,MOD",
         "シンボルレート・誤り訂正(FEC)・変調方式を1画面で設定します。シンボルレートはプリセット"
             + "(250k〜2000k)から選ぶか「直接入力」で100〜5000 kS/sを入力します。誤り訂正は"
             + "DVB-S2規格で変調方式ごとに定められた値(QPSK: 1/4〜9/10、8PSK: 3/5〜9/10、16APSK: 2/3〜9/10、32APSK: 3/4〜9/10)、"
@@ -254,7 +254,7 @@ private val helpSections = listOf(
             + "transmit and receive share these settings.",
     ),
     HelpSection(
-        "設定４(映像ソース)", "Config 4 (Video Source)",
+        "映像,配信先(映像ソース)", "Video, Output (Video Source)",
         "背面カメラ(既定)・前面カメラ・写真(写真フォルダーから選択)・テストパターン(カラーバー)の"
             + "いずれかを選びます。ここで選んだ映像が「送信」タブでのプレビューと送信対象になります。"
             + "「写真」を選ぶと、写真に焼き込む「コールサイン」「備考」を入力できます。"
@@ -268,7 +268,7 @@ private val helpSections = listOf(
             + " The \"TX Volume\" slider on the Transmit tab adjusts the microphone level from 0 to 100% (default 80% = unchanged, 100% = 2x), applied immediately even while transmitting.",
     ),
     HelpSection(
-        "設定４(配信先)", "Config 4 (Stream Output)",
+        "映像,配信先(配信先)", "Video, Output (Stream Output)",
         "「送信先(Pluto Tx)のIPアドレス」でPlutoのIPアドレスを設定します。このPlutoはDATVの送受信だけでなく、"
             + "SSB/FMとRSSI測定でも使います。DATV送信は常にPlutoの固定ポート8282(UDP-TS)へ送ります。"
             + "「自動検出」を押すと、まず端末が接続中のネットワーク(同じサブネット)からPlutoを探し、"

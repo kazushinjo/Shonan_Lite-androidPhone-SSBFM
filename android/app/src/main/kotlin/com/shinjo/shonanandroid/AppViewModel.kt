@@ -196,7 +196,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     /**
-     * PA/PTTコントローラ(ESP32+W5500)へ通知する。設定1タブの「PA/PTTコントローラを使う」がOFFなら何もしない。
+     * PA/PTTコントローラ(ESP32+W5500)へ通知する。OD,ESP32,PLUTOタブの「PA/PTTコントローラを使う」がOFFなら何もしない。
      * 未接続・応答なしでもDATVの送受信は妨げず、結果はログにだけ残す。
      */
     private suspend fun notifyPttController(label: String, call: (String) -> Result<String>) {

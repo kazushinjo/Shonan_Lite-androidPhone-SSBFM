@@ -63,10 +63,10 @@ private val homeTabs = listOf(
     HomeTab("受信", "Receive", "rx"),
     HomeTab("RSSI測定", "RSSI", "rssi"),
     HomeTab("周波数", "Frequency", "frequency"),
-    HomeTab("設定１", "Config 1", "settings"),
-    HomeTab("設定２", "Config 2", "gainpower"),
-    HomeTab("設定３", "Config 3", "modcod"),
-    HomeTab("設定４", "Config 4", "sourceoutput"),
+    HomeTab("OD,ESP32,PLUTO", "OD,ESP32,PLUTO", "settings"),
+    HomeTab("送受ゲイン", "TX/RX Gain", "gainpower"),
+    HomeTab("SR,FEC,MOD", "SR,FEC,MOD", "modcod"),
+    HomeTab("映像,配信先", "Video, Output", "sourceoutput"),
     HomeTab("ヘルプ", "Help", "help"),
 )
 
